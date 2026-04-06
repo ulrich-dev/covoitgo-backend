@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D7A6A"/>
+      <stop offset="100%" stop-color="#22C6AD"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fond -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Route -->
+  <path d="M0,380 L180,310 L332,310 L512,360 L512,512 L0,512 Z" fill="rgba(0,0,0,0.15)"/>
+  <rect x="0" y="350" width="512" height="162" fill="rgba(0,0,0,0.2)"/>
+
+  <!-- Lignes de route -->
+  <rect x="200" y="368" width="40" height="8" rx="4" fill="rgba(255,221,100,0.7)"/>
+  <rect x="270" y="368" width="40" height="8" rx="4" fill="rgba(255,221,100,0.7)"/>
+
+  <!-- Voiture principale (blanche) -->
+  <g transform="translate(140,250)">
+    <!-- Corps -->
+    <rect x="0" y="40" width="232" height="80" rx="14" fill="#fff"/>
+    <!-- Toit -->
+    <path d="M40,40 Q48,4 88,4 L152,4 Q190,4 198,40 Z" fill="#fff"/>
+    <!-- Pare-brise -->
+    <path d="M50,38 Q56,8 88,8 L152,8 Q182,8 188,38 Z" fill="#BAE6FD" opacity="0.8"/>
+    <!-- Fenêtres -->
+    <rect x="58" y="10" width="46" height="24" rx="5" fill="#7DD3FC" opacity="0.85"/>
+    <rect x="122" y="10" width="46" height="24" rx="5" fill="#7DD3FC" opacity="0.85"/>
+    <!-- Roues -->
+    <circle cx="50"  cy="120" r="26" fill="#1A1A2E"/>
+    <circle cx="50"  cy="120" r="13" fill="#374151"/>
+    <circle cx="50"  cy="120" r="6"  fill="#9CA3AF"/>
+    <circle cx="182" cy="120" r="26" fill="#1A1A2E"/>
+    <circle cx="182" cy="120" r="13" fill="#374151"/>
+    <circle cx="182" cy="120" r="6"  fill="#9CA3AF"/>
+    <!-- Phares -->
+    <rect x="210" y="54" width="24" height="14" rx="5" fill="#FDE68A" opacity="0.95"/>
+    <rect x="-2"   y="54" width="18" height="14" rx="5" fill="#FCA5A5" opacity="0.85"/>
+    <!-- Passagers -->
+    <circle cx="96"  cy="18" r="9" fill="rgba(26,158,138,0.55)"/>
+    <circle cx="140" cy="18" r="9" fill="rgba(26,158,138,0.45)"/>
+    <!-- Stripe -->
+    <rect x="0" y="86" width="232" height="10" fill="rgba(26,158,138,0.18)" rx="2"/>
+  </g>
+
+  <!-- Texte COVOITGO -->
+  <text x="256" y="470" text-anchor="middle"
+    font-family="'Arial Black', 'Impact', sans-serif"
+    font-size="52" font-weight="900"
+    fill="rgba(255,255,255,0.95)"
+    letter-spacing="-1">COVOITGO</text>
+</svg>

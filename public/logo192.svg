@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D7A6A"/>
+      <stop offset="100%" stop-color="#22C6AD"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fond arrondi -->
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <rect width="192" height="96" rx="42" fill="url(#shine)"/>
+
+  <!-- Corps voiture -->
+  <rect x="24" y="104" width="144" height="52" rx="12" fill="#fff" opacity="0.95"/>
+
+  <!-- Toit -->
+  <path d="M54 104 Q60 64 78 62 L114 62 Q132 62 138 104 Z" fill="#fff" opacity="0.95"/>
+
+  <!-- Pare-brise -->
+  <path d="M60 102 Q63 70 78 68 L114 68 Q129 68 132 102 Z" fill="#BAE6FD" opacity="0.8"/>
+
+  <!-- Fenêtres -->
+  <rect x="66" y="72" width="24" height="22" rx="5" fill="#7DD3FC" opacity="0.9"/>
+  <rect x="102" y="72" width="24" height="22" rx="5" fill="#7DD3FC" opacity="0.9"/>
+
+  <!-- Roues -->
+  <circle cx="57" cy="152" r="18" fill="#1F2937"/>
+  <circle cx="57" cy="152" r="9" fill="#374151"/>
+  <circle cx="57" cy="152" r="4.5" fill="#9CA3AF"/>
+
+  <circle cx="135" cy="152" r="18" fill="#1F2937"/>
+  <circle cx="135" cy="152" r="9" fill="#374151"/>
+  <circle cx="135" cy="152" r="4.5" fill="#9CA3AF"/>
+
+  <!-- Phares -->
+  <rect x="162" y="114" width="14" height="16" rx="5" fill="#FDE68A" opacity="0.95"/>
+  <rect x="16"  y="114" width="10" height="16" rx="5" fill="#FCA5A5" opacity="0.9"/>
+
+  <!-- Stripe déco -->
+  <rect x="24" y="134" width="144" height="4" fill="rgba(26,158,138,0.2)" rx="2"/>
+
+  <!-- Passagers -->
+  <circle cx="88"  cy="80" r="8" fill="rgba(26,158,138,0.5)"/>
+  <circle cx="114" cy="80" r="8" fill="rgba(26,158,138,0.4)"/>
+</svg>

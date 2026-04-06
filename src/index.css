@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,700;1,700&display=swap');
+
+/* ══════════════════════════════════════════════
+   DESIGN TOKENS — "Fresh Journey"
+   Primary  : Forest Teal   #1A9E8A
+   Accent   : Sunset Orange #FF6B35
+   Surface  : Warm Cream    #FAFAF7
+   ══════════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --bg:           #FAFAF7;
+  --bg-alt:       #F2F0E8;
+  --bg-card:      #FFFFFF;
+  --bg-input:     #FFFFFF;
+  --bg-teal:      #E8F7F4;
+  --bg-orange:    #FFF2EB;
+
+  /* Brand — Teal */
+  --teal:         #1A9E8A;
+  --teal-dark:    #157A6B;
+  --teal-light:   #E2F5F2;
+  --teal-glow:    rgba(26,158,138,0.18);
+
+  /* Brand — Orange */
+  --orange:       #FF6B35;
+  --orange-dark:  #E85520;
+  --orange-light: #FFF0E8;
+  --orange-glow:  rgba(255,107,53,0.18);
+
+  /* Accents */
+  --violet:       #7C3AED;
+  --violet-light: #F3EEFF;
+  --gold:         #F59E0B;
+  --gold-light:   #FFFBEB;
+  --sky:          #0EA5E9;
+  --sky-light:    #E0F2FE;
+
+  /* Text */
+  --text:         #1C1917;
+  --text-muted:   #6B6560;
+  --text-dim:     #A8A39E;
+
+  /* Borders */
+  --border:       rgba(26,25,23,0.09);
+  --border-strong:rgba(26,25,23,0.16);
+
+  /* Shadows */
+  --shadow-xs:    0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03);
+  --shadow-sm:    0 2px 8px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.04);
+  --shadow-md:    0 4px 20px rgba(0,0,0,0.08), 0 12px 36px rgba(0,0,0,0.05);
+  --shadow-lg:    0 8px 36px rgba(0,0,0,0.10), 0 24px 64px rgba(0,0,0,0.06);
+  --shadow-teal:  0 6px 24px rgba(26,158,138,0.28);
+  --shadow-orange:0 6px 24px rgba(255,107,53,0.28);
+
+  --radius:    12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+/* ── Reset ─────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-alt); }
+::-webkit-scrollbar-thumb { background: var(--teal); border-radius: 3px; }
+
+a { text-decoration: none; color: inherit; }
+button { font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline: none; }
+
+/* ── Animations ────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(0.97); opacity: 0.6; }
+  50%       { transform: scale(1.03); opacity: 0.3; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.fade-up  { animation: fadeUp 0.7s ease both; }
+.fade-in  { animation: fadeIn 0.5s ease both; }
+
+/* ── SHARED BUTTONS ─────────────────────────── */
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--teal), #22C6AD);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-teal);
+  filter: brightness(1.06);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-orange {
+  background: linear-gradient(135deg, var(--orange), #FF8C5A);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+.btn-orange:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-orange);
+  filter: brightness(1.06);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--teal);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+.btn-outline:hover {
+  background: var(--teal-light);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.btn-ghost:hover { color: var(--teal); }
+
+/* ── FORM INPUTS ────────────────────────────── */
+.form-input {
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 15px;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-glow);
+}
+.form-input::placeholder { color: var(--text-dim); }
+select.form-input option { background: #fff; color: var(--text); }
+
+/* ── CARD ────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── GRADIENT TEXTS ─────────────────────────── */
+.gradient-teal {
+  background: linear-gradient(135deg, var(--teal), #2DD4BF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-orange {
+  background: linear-gradient(135deg, var(--orange), #FFB347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-sunset {
+  background: linear-gradient(135deg, var(--orange), var(--violet));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── SECTION LABEL ──────────────────────────── */
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--teal-light);
+  color: var(--teal);
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+.section-label.orange {
+  background: var(--orange-light);
+  color: var(--orange-dark);
+}
+
+/* ── DECORATIVE ─────────────────────────────── */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+}
