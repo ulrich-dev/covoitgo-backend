@@ -2,6 +2,7 @@ require('dotenv').config()
 
 const express        = require('express')
 const http           = require('http')
+const fs             = require('fs')
 const session        = require('express-session')
 const pgSession      = require('connect-pg-simple')(session)
 const cors           = require('cors')
@@ -9,6 +10,43 @@ const path           = require('path')
 const passport       = require('./config/passport')
 const { pool }       = require('./db')
 const { initSocket } = require('./socket')
+
+// ── Migrations automatiques au démarrage ─────────────────────
+async function runMigrations() {
+  const files = [
+    'schema.sql',
+    'migration_auth.sql',
+    'migration_oauth.sql',
+    'migration_admin.sql',
+    'migration_vehicle.sql',
+    'migration_scheduler.sql',
+    'migration_confirmation.sql',
+    'migration_contact.sql',
+    'migration_connection_logs.sql',
+    'migration_freemium.sql',
+    'migration_inquiry.sql',
+    'migration_avatar.sql',
+    'migration_language.sql',
+    'migration_alerts.sql',
+  ]
+  console.log('\n  🗄️  Vérification des migrations...')
+  for (const file of files) {
+    const filePath = path.join(__dirname, 'db', file)
+    if (!fs.existsSync(filePath)) continue
+    try {
+      const sql = fs.readFileSync(filePath, 'utf8')
+      await pool.query(sql)
+      console.log(`  ✅  ${file}`)
+    } catch (err) {
+      if (!err.message.includes('already exists') &&
+          !err.message.includes('duplicate') &&
+          !err.message.includes('does not exist')) {
+        console.error(`  ⚠️  ${file}: ${err.message}`)
+      }
+    }
+  }
+  console.log('  ✅  Migrations terminées\n')
+}
 
 const authRoutes          = require('./routes/auth')
 const tripsRoutes         = require('./routes/trips')
@@ -138,25 +176,20 @@ initSocket(server, session({
 }))
 
 // ── Démarrage ─────────────────────────────────────────────────
-server.listen(PORT, '0.0.0.0', () => {
-  const { networkInterfaces } = require('os')
-  const nets = networkInterfaces()
-  let lanIP = 'N/A'
-  for (const name of Object.keys(nets)) {
-    for (const iface of nets[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) lanIP = iface.address
-    }
-  }
-
-  console.log('')
-  console.log('  🚗  Covoitgo API v2.0 — WebSocket activé')
-  console.log(`  💻  Backend  : http://localhost:${PORT}`)
-  console.log(`  📱  Frontend : http://${lanIP}:5173`)
-  console.log(`  🔌  Socket.io: ws://localhost:${PORT}`)
-  console.log(`  🔐  Google   : ${process.env.GOOGLE_CLIENT_ID  ? '✅ configuré' : '❌ manquant'}`)
-  console.log(`  🔐  Facebook : ${process.env.FACEBOOK_APP_ID  ? '✅ configuré' : '❌ manquant'}`)
-  console.log('')
-  startScheduler()
+runMigrations().then(() => {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log('')
+    console.log('  🚗  Covoitgo API v2.0')
+    console.log(`  💻  Port     : ${PORT}`)
+    console.log(`  🌍  Env      : ${process.env.NODE_ENV || 'development'}`)
+    console.log(`  🔐  Google   : ${process.env.GOOGLE_CLIENT_ID  ? '✅' : '❌ manquant'}`)
+    console.log(`  🔐  Facebook : ${process.env.FACEBOOK_APP_ID   ? '✅' : '❌ manquant'}`)
+    console.log('')
+    startScheduler()
+  })
+}).catch(err => {
+  console.error('❌ Erreur démarrage:', err)
+  process.exit(1)
 })
 
 module.exports = app
