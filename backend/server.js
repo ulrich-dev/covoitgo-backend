@@ -188,6 +188,12 @@ async function start() {
     console.log(`  🌍  Env      : ${process.env.NODE_ENV || 'development'}`)
     console.log(`  🔐  Google   : ${process.env.GOOGLE_CLIENT_ID  ? '✅' : '❌ manquant'}`)
     console.log(`  🔐  Facebook : ${process.env.FACEBOOK_APP_ID   ? '✅' : '❌ manquant'}`)
+    console.log(`  📧  Email    : ${
+      process.env.RESEND_API_KEY ? '✅ Resend SDK' :
+      process.env.SMTP_HOST      ? `✅ SMTP (${process.env.SMTP_HOST})` :
+      '⚠️  Mailtrap (dev)'
+    }`)
+    console.log(`  📧  From     : ${process.env.SMTP_FROM || process.env.SMTP_USER || 'onboarding@resend.dev'}`)
     console.log('')
     startScheduler()
   })
