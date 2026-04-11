@@ -9,6 +9,7 @@ const cors           = require('cors')
 const path           = require('path')
 const passport       = require('./config/passport')
 const { pool }       = require('./db')
+const { waitForDatabase } = require('./db')
 const { initSocket } = require('./socket')
 
 // ── Migrations automatiques au démarrage ─────────────────────
@@ -176,7 +177,18 @@ initSocket(server, session({
 }))
 
 // ── Démarrage ─────────────────────────────────────────────────
-runMigrations().then(() => {
+async function start() {
+  // 1. Attendre que PostgreSQL soit disponible
+  const dbReady = await waitForDatabase(10, 3000)
+  if (!dbReady) {
+    console.error('❌ PostgreSQL inaccessible — arrêt.')
+    process.exit(1)
+  }
+
+  // 2. Migrations
+  await runMigrations()
+
+  // 3. Démarrer le serveur
   server.listen(PORT, '0.0.0.0', () => {
     console.log('')
     console.log('  🚗  Covoitgo API v2.0')
@@ -187,7 +199,9 @@ runMigrations().then(() => {
     console.log('')
     startScheduler()
   })
-}).catch(err => {
+}
+
+start().catch(err => {
   console.error('❌ Erreur démarrage:', err)
   process.exit(1)
 })
