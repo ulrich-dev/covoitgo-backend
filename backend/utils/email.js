@@ -1,33 +1,47 @@
-const nodemailer = require('nodemailer')
 const { EMAIL_T } = require('./emailTranslations')
 
 // ══════════════════════════════════════════════
-//  TRANSPORT EMAIL
+//  TRANSPORT EMAIL — Resend SDK
+//  En production : utilise RESEND_API_KEY
+//  En dev        : utilise Mailtrap (SMTP)
 // ══════════════════════════════════════════════
-const createTransport = () => {
-  if (process.env.NODE_ENV === 'production') {
-    return nodemailer.createTransport({
-      host:   process.env.SMTP_HOST,
-      port:   parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    })
-  }
-  return nodemailer.createTransport({
-    host: process.env.MAILTRAP_HOST || 'sandbox.smtp.mailtrap.io',
-    port: parseInt(process.env.MAILTRAP_PORT || '2525'),
-    auth: {
-      user: process.env.MAILTRAP_USER || 'votre_user_mailtrap',
-      pass: process.env.MAILTRAP_PASS || 'votre_pass_mailtrap',
-    },
-  })
-}
-
-const transporter = createTransport()
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
 const APP_NAME   = 'Covoitgo'
-const SENDER     = `${APP_NAME} <noreply@covoitgo.cm>`
+
+// Adresse expéditeur — configurable via SMTP_FROM
+const SENDER = process.env.SMTP_FROM
+  ? `${APP_NAME} <${process.env.SMTP_FROM}>`
+  : `${APP_NAME} <onboarding@resend.dev>`
+
+// ── Fonction d'envoi unifiée ──────────────────────────────────
+// Utilise Resend SDK en prod, Mailtrap en dev
+async function sendMail({ to, subject, html }) {
+  if (process.env.RESEND_API_KEY) {
+    // ── Resend SDK (production) ───────────────
+    const { Resend } = require('resend')
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const { error } = await resend.emails.send({
+      from:    SENDER,
+      to:      [to],
+      subject,
+      html,
+    })
+    if (error) throw new Error(`Resend error: ${error.message}`)
+  } else {
+    // ── Nodemailer Mailtrap (développement) ───
+    const nodemailer = require('nodemailer')
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAILTRAP_HOST || 'sandbox.smtp.mailtrap.io',
+      port: parseInt(process.env.MAILTRAP_PORT || '2525'),
+      auth: {
+        user: process.env.MAILTRAP_USER || 'votre_user_mailtrap',
+        pass: process.env.MAILTRAP_PASS || 'votre_pass_mailtrap',
+      },
+    })
+    await transporter.sendMail({ from: SENDER, to, subject, html })
+  }
+}
 
 // Compatibilité ancienne variable
 const FROM_EMAIL = SENDER
@@ -114,7 +128,7 @@ const sendVerificationEmail = async ({ email, firstName, token, lang = 'en' }) =
     </p>
   `, lang)
 
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.verify_subject, html })
+  await sendMail({ to: email, subject: e.verify_subject, html })
   console.log(`📧  Vérification → ${email} [${lang}]`)
 }
 
@@ -130,7 +144,7 @@ const sendPasswordResetEmail = async ({ email, firstName, token, lang = 'en' }) 
     ${btn(resetUrl, e.reset_btn, '#FF6B35')}
     <p style="color:#a09890;font-size:12px;text-align:center;">${e.reset_expiry}<br>${e.reset_ignore}</p>
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.reset_subject, html })
+  await sendMail({ to: email, subject: e.reset_subject, html })
   console.log(`📧  Reset pwd → ${email} [${lang}]`)
 }
 
@@ -148,7 +162,7 @@ const sendBookingRequestEmail = async ({ driverEmail, driverName, passengerName,
     ${tripBlock(from, to, departureAt, e)}
     ${btn(link, e.booking_req_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: driverEmail, subject: e.booking_req_subject(from, to), html })
+  await sendMail({ to: driverEmail, subject: e.booking_req_subject(from, to), html })
   console.log(`📧  Booking request → ${driverEmail} [${lang}]`)
 }
 
@@ -170,7 +184,7 @@ const sendBookingConfirmedEmail = async ({ passengerEmail, passengerName, driver
     </div>
     ${btn(link, e.booking_conf_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: passengerEmail, subject: e.booking_conf_subject(from, to), html })
+  await sendMail({ to: passengerEmail, subject: e.booking_conf_subject(from, to), html })
   console.log(`📧  Booking confirmed → ${passengerEmail} [${lang}]`)
 }
 
@@ -188,7 +202,7 @@ const sendBookingCancelledEmail = async ({ email, name, from, to, departureAt, c
     ${tripBlock(from, to, departureAt, e)}
     ${btn(`${CLIENT_URL}/search`, lang === 'fr' ? 'Trouver un autre trajet →' : 'Find another ride →')}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.booking_cancel_subject(from, to), html })
+  await sendMail({ to: email, subject: e.booking_cancel_subject(from, to), html })
   console.log(`📧  Booking cancelled → ${email} [${lang}]`)
 }
 
@@ -209,7 +223,7 @@ const sendNewMessageEmail = async ({ recipientEmail, recipientName, senderName, 
     <div style="color:#a09890;font-size:13px;margin-bottom:20px;">${from} → ${to}</div>
     ${btn(link, e.message_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: recipientEmail, subject: e.message_subject(senderName, from, to), html })
+  await sendMail({ to: recipientEmail, subject: e.message_subject(senderName, from, to), html })
   console.log(`📧  New message → ${recipientEmail} [${lang}]`)
 }
 
@@ -225,7 +239,7 @@ const sendAccountBlockedEmail = async ({ email, firstName, lang = 'en' }) => {
     </p>
     ${btn(`${CLIENT_URL}/contact`, e.blocked_contact, '#EF4444')}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.blocked_subject, html })
+  await sendMail({ to: email, subject: e.blocked_subject, html })
   console.log(`📧  Account blocked → ${email} [${lang}]`)
 }
 
@@ -241,7 +255,7 @@ const sendAccountReactivatedEmail = async ({ email, firstName, lang = 'en' }) =>
     </p>
     ${btn(`${CLIENT_URL}`, lang === 'fr' ? 'Retour à Covoitgo →' : 'Back to Covoitgo →')}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: lang === 'fr' ? 'Votre compte Covoitgo a été réactivé' : 'Your Covoitgo account has been reactivated', html })
+  await sendMail({ to: email, subject: lang === 'fr' ? 'Votre compte Covoitgo a été réactivé' : 'Your Covoitgo account has been reactivated', html })
   console.log(`📧  Account reactivated → ${email} [${lang}]`)
 }
 
@@ -261,7 +275,7 @@ const sendDepartureReminderEmail = async ({ email, name, role, from, to, departA
     ${driverPhone && role !== 'driver' ? `<div style="background:#f3f0ea;border-radius:10px;padding:14px 18px;margin:12px 0;font-size:14px;"><strong>${e.driver_phone} :</strong> ${driverPhone}</div>` : ''}
     ${btn(link, e.reminder_15_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.reminder_subject(from, to), html })
+  await sendMail({ to: email, subject: e.reminder_subject(from, to), html })
   console.log(`📧  Reminder → ${email} [${lang}]`)
 }
 
@@ -279,7 +293,7 @@ const sendReviewRequestEmail = async ({ email, name, driverName, from, to, booki
     <div style="text-align:center;font-size:36px;margin:16px 0;">⭐⭐⭐⭐⭐</div>
     ${btn(link, e.review_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.review_subject(from, to), html })
+  await sendMail({ to: email, subject: e.review_subject(from, to), html })
   console.log(`📧  Review request → ${email} [${lang}]`)
 }
 
@@ -296,7 +310,7 @@ const sendTripConfirmationRequestEmail = async ({ email, name, role, confirmerNa
     </p>
     ${btn(link, e.confirm_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: e.confirm_subject(from, to), html })
+  await sendMail({ to: email, subject: e.confirm_subject(from, to), html })
   console.log(`📧  Confirm request → ${email} [${lang}]`)
 }
 
@@ -310,7 +324,7 @@ const sendTripCompletedEmail = async ({ email, name, role, from, to, bookingId, 
     </p>
     ${btn(`${CLIENT_URL}/my-trips`, lang === 'fr' ? 'Voir mes trajets →' : 'View my rides →')}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: `${from} → ${to} — ${lang === 'fr' ? 'Trajet terminé' : 'Ride completed'}`, html })
+  await sendMail({ to: email, subject: `${from} → ${to} — ${lang === 'fr' ? 'Trajet terminé' : 'Ride completed'}`, html })
   console.log(`📧  Trip completed → ${email} [${lang}]`)
 }
 
@@ -325,7 +339,7 @@ const sendTripDisputedEmail = async ({ email, name, disputerName, from, to, reas
     </p>
     ${btn(`${CLIENT_URL}/contact`, lang === 'fr' ? 'Contacter le support →' : 'Contact support →', '#EF4444')}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: email, subject: `${lang === 'fr' ? 'Litige' : 'Dispute'} — ${from} → ${to}`, html })
+  await sendMail({ to: email, subject: `${lang === 'fr' ? 'Litige' : 'Dispute'} — ${from} → ${to}`, html })
   console.log(`📧  Trip disputed → ${email} [${lang}]`)
 }
 
@@ -355,7 +369,7 @@ const sendContactEmail = async ({ name, email, subject, category, message, userI
     <div style="background:#fff;border:1px solid #e0ddd8;border-radius:10px;padding:16px 20px;font-size:14px;white-space:pre-wrap;">${message}</div>
     ${btn(`${SUPPORT_EMAIL}`, 'Répondre au client →')}
   `, 'fr')
-  await transporter.sendMail({ from: SENDER, to: SUPPORT_EMAIL, replyTo: email, subject: `[Support] ${subject}`, html })
+  await sendMail({ to: SUPPORT_EMAIL, subject: `[Support] ${subject}`, html })
   console.log(`📧  Contact → support [de ${email}]`)
 }
 
@@ -369,7 +383,7 @@ const sendAdminReplyEmail = async ({ clientEmail, clientName, adminName, subject
     <div style="background:#e8f7f4;border-left:4px solid #1A9E8A;border-radius:0 10px 10px 0;padding:14px 18px;margin:16px 0;font-size:14px;white-space:pre-wrap;">${replyBody}</div>
     ${btn(`${CLIENT_URL}/contact`, e.contact_reply_btn)}
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: clientEmail, subject: `Re: ${subject}`, html })
+  await sendMail({ to: clientEmail, subject: `Re: ${subject}`, html })
   console.log(`📧  Admin reply → ${clientEmail} [${lang}]`)
 }
 
@@ -381,7 +395,7 @@ const sendClientReplyNotifEmail = async ({ clientName, clientEmail, subject, rep
     </p>
     <div style="background:#f3f0ea;border-radius:10px;padding:14px 18px;margin:16px 0;font-size:14px;white-space:pre-wrap;">${replyBody}</div>
   `, 'fr')
-  await transporter.sendMail({ from: SENDER, to: SUPPORT_EMAIL, replyTo: clientEmail, subject: `Re: ${subject}`, html })
+  await sendMail({ to: SUPPORT_EMAIL, subject: `Re: ${subject}`, html })
   console.log(`📧  Client reply notif → ${SUPPORT_EMAIL}`)
 }
 
@@ -412,7 +426,7 @@ const sendTripAlertEmail = async ({ userEmail, userName, from, to, departureAt, 
       <a href="${CLIENT_URL}/alerts" style="color:#1A9E8A;">${e.alert_manage}</a>
     </p>
   `, lang)
-  await transporter.sendMail({ from: SENDER, to: userEmail, subject, html })
+  await sendMail({ to: userEmail, subject, html })
   console.log(`📧  Alert ${type} → ${userEmail} [${lang}]`)
 }
 
