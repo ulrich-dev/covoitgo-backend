@@ -4,6 +4,21 @@ const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { sendAccountBlockedEmail, sendAccountReactivatedEmail } = require('../utils/email')
 
 const router = express.Router()
+
+// ── /me doit être AVANT requireAdmin (pour vérifier si on est admin) ──
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const user = await queryOne(
+      'SELECT id, email, first_name, last_name, is_admin FROM users WHERE id = $1',
+      [req.session.userId]
+    )
+    res.json({ success: true, user })
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Erreur serveur.' })
+  }
+})
+
+// Toutes les autres routes admin nécessitent d'être admin
 router.use(requireAuth, requireAdmin)
 
 // ══════════════════════════════════════════════
@@ -370,18 +385,6 @@ router.get('/bookings', async (req, res) => {
 // ══════════════════════════════════════════════
 //  GET /api/admin/me — Vérifie que l'admin est connecté
 // ══════════════════════════════════════════════
-router.get('/me', async (req, res) => {
-  try {
-    const user = await queryOne(
-      'SELECT id, email, first_name, last_name, is_admin FROM users WHERE id = $1',
-      [req.session.userId]
-    )
-    res.json({ success: true, user })
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Erreur serveur.' })
-  }
-})
-
 // ══════════════════════════════════════════════
 //  PATCH /api/admin/users/:id/docs
 //  Vérifier ou rejeter les documents d'un conducteur

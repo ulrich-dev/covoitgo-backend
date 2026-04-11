@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { API_URL } from '../utils/api'
 
 const AuthContext = createContext(null)
@@ -20,6 +20,7 @@ const apiFetch = async (endpoint, options = {}) => {
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
+  const refreshTimer          = useRef(null)
 
   // Synchronise la langue du compte avec le LangContext
   const syncLang = useCallback((userData) => {
@@ -28,6 +29,27 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // ── Refresh automatique de session ─────────────────────────
+  // Appelle /api/auth/me toutes les 30 minutes pour renouveler le cookie
+  const startSessionRefresh = useCallback((currentUser) => {
+    if (refreshTimer.current) clearInterval(refreshTimer.current)
+    if (!currentUser) return
+
+    refreshTimer.current = setInterval(async () => {
+      try {
+        const data = await apiFetch('/api/auth/me')
+        if (data.success) {
+          setUser(data.user)
+          syncLang(data.user)
+        } else {
+          // Session expirée → déconnecter
+          setUser(null)
+          clearInterval(refreshTimer.current)
+        }
+      } catch {}
+    }, 30 * 60 * 1000) // toutes les 30 minutes
+  }, [syncLang])
+
   // Restaure la session au chargement
   useEffect(() => {
     apiFetch('/api/auth/me')
@@ -35,17 +57,23 @@ export function AuthProvider({ children }) {
         if (data.success) {
           setUser(data.user)
           syncLang(data.user)
+          startSessionRefresh(data.user)
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [syncLang])
+
+    return () => {
+      if (refreshTimer.current) clearInterval(refreshTimer.current)
+    }
+  }, [syncLang, startSessionRefresh])
 
   const login = async (email, password) => {
     const data = await apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
     if (data.success) {
       setUser(data.user)
       syncLang(data.user)
+      startSessionRefresh(data.user)
     }
     return data
   }
@@ -69,6 +97,7 @@ export function AuthProvider({ children }) {
   }
 
   const logout = async () => {
+    if (refreshTimer.current) clearInterval(refreshTimer.current)
     await apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     setUser(null)
   }
@@ -79,6 +108,7 @@ export function AuthProvider({ children }) {
       if (data.success) {
         setUser(data.user)
         syncLang(data.user)
+        startSessionRefresh(data.user)
         return data.user
       }
     } catch {}

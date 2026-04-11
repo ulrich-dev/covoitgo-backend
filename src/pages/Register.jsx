@@ -13,7 +13,7 @@ const STEPS = [
 ]
 
 export default function Register() {
-  const { register } = useAuth()
+  const { register, login } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep]               = useState(0)
@@ -70,6 +70,13 @@ export default function Register() {
       const data = await register(form)
       if (data.success || data.needsVerification) {
         setRegEmail(form.email)
+
+        // Connecter automatiquement l'utilisateur pour que l'étape 3 ait une session
+        if (data.success) {
+          try {
+            await login(form.email, form.password)
+          } catch {} // non bloquant
+        }
 
         // Uploader la photo si l'utilisateur en a choisi une
         if (avatarFile && data.success) {

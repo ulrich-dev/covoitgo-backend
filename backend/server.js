@@ -92,23 +92,25 @@ app.use(cors({
 }))
 
 // ── Sessions ──────────────────────────────────────────────────
+const SESSION_DURATION = 3 * 60 * 60 * 1000 // 3 heures en ms
+
 app.use(session({
   store: new pgSession({
     pool,
     tableName:            'session',
-    createTableIfMissing: false,
-    pruneSessionInterval: 3600,
+    createTableIfMissing: true,       // crée la table si elle n'existe pas
+    pruneSessionInterval: 60 * 60,    // nettoyer les sessions expirées toutes les heures
+    ttl:                  3 * 60 * 60 // TTL en secondes (3h) dans PostgreSQL
   }),
   secret:            process.env.SESSION_SECRET || 'dev_secret_changez_en_prod',
-  resave:            false,
+  resave:            true,            // re-sauvegarder à chaque requête (renouvelle le TTL)
   saveUninitialized: false,
+  rolling:           true,            // renouveler le cookie à chaque requête
   name: 'cvg.sid',
   cookie: {
-    maxAge:   7 * 24 * 60 * 60 * 1000,
+    maxAge:   SESSION_DURATION,
     httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',  // HTTPS obligatoire en prod
-    // 'none' requis pour les cookies cross-domain (frontend vercel ↔ backend railway)
-    // 'lax' suffisant en dev (même origine via proxy Vite)
+    secure:   process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 }))
@@ -161,15 +163,17 @@ initSocket(server, session({
   store: new pgSession({
     pool,
     tableName:            'session',
-    createTableIfMissing: false,
-    pruneSessionInterval: 3600,
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 60,
+    ttl:                  3 * 60 * 60,
   }),
   secret:            process.env.SESSION_SECRET || 'dev_secret_changez_en_prod',
-  resave:            false,
+  resave:            true,
   saveUninitialized: false,
+  rolling:           true,
   name: 'cvg.sid',
   cookie: {
-    maxAge:   7 * 24 * 60 * 60 * 1000,
+    maxAge:   SESSION_DURATION,
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
