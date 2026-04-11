@@ -194,6 +194,8 @@ async function start() {
       '⚠️  Mailtrap (dev)'
     }`)
     console.log(`  📧  From     : ${process.env.SMTP_FROM || process.env.SMTP_USER || 'onboarding@resend.dev'}`)
+    console.log(`  🔑  RESEND   : ${process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0,8) + '...' : '❌ non définie'}`)
+    console.log(`  🔑  DEBUG    : ${process.env.DEBUG_KEY || '❌ non définie'}`)
     console.log('')
     startScheduler()
   })

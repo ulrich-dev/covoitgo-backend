@@ -304,16 +304,25 @@ router.get('/me', requireAuth, async (req, res) => {
 router.post('/forgot-password', [body('email').isEmail().normalizeEmail()], async (req, res) => {
   try {
     const { email } = req.body
-    const user = await queryOne('SELECT id,first_name,email_verified FROM users WHERE email=$1 AND is_active=true', [email])
+    const user = await queryOne(
+      'SELECT id, first_name, email_verified, language FROM users WHERE email=$1 AND is_active=true',
+      [email]
+    )
 
-    if (!user || !user.email_verified) {
+    // Réponse générique pour ne pas révéler si l'email existe
+    if (!user) {
       return res.json({ success:true, message:'Si ce compte existe, un email de réinitialisation a été envoyé.' })
     }
 
     const token   = makeToken()
     const expires = new Date(Date.now() + 3600*1000) // 1h
     await query('UPDATE users SET reset_token=$1,reset_token_expires=$2 WHERE id=$3', [token, expires, user.id])
-    await sendPasswordResetEmail({ email, firstName:user.first_name, token }).catch(console.error)
+    await sendPasswordResetEmail({
+      email,
+      firstName: user.first_name,
+      token,
+      lang: user.language || 'fr'
+    }).catch(console.error)
 
     res.json({ success:true, message:'Email de réinitialisation envoyé. Vérifiez votre boîte mail.' })
   } catch (error) {
