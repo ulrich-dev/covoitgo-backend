@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Photo de profil utilisateur
---  psql -U postgres -d covoitgo -f db/migration_avatar.sql
+--  CLANDO — Migration : Photo de profil utilisateur
+--  psql -U postgres -d clando -f db/migration_avatar.sql
 -- ══════════════════════════════════════════════════════════════
 
 ALTER TABLE users

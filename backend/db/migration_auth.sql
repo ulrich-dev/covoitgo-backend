@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Email verification + Password reset
+--  CLANDO — Migration : Email verification + Password reset
 --  Exécutez ce fichier UNE SEULE FOIS après schema.sql
---  psql -U postgres -d covoitgo -f db/migration_auth.sql
+--  psql -U postgres -d clando -f db/migration_auth.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Ajout des colonnes de vérification email

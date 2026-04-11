@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration OAuth (Google + Facebook)
+--  CLANDO — Migration OAuth (Google + Facebook)
 --  Exécutez UNE SEULE FOIS :
---  psql -U postgres -d covoitgo -f db/migration_oauth.sql
+--  psql -U postgres -d clando -f db/migration_oauth.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Colonnes OAuth

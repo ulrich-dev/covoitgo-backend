@@ -1,4 +1,4 @@
-# 🛠️ Guide d'installation complet — Covoitgo
+# 🛠️ Guide d'installation complet — Clando
 
 ## Ce que vous allez installer
 
@@ -62,9 +62,9 @@ sudo systemctl enable postgresql
 1. Ouvrez **pgAdmin 4** (installé avec PostgreSQL)
 2. Dans le panneau gauche, clic droit sur **Servers > PostgreSQL 16 > Databases**
 3. Cliquez **"Create > Database..."**
-4. Nom de la base : `covoitgo`
+4. Nom de la base : `clando`
 5. Cliquez **Save**
-6. Clic droit sur la base `covoitgo` > **"Query Tool"**
+6. Clic droit sur la base `clando` > **"Query Tool"**
 7. Dans l'éditeur, collez le contenu du fichier `backend/db/schema.sql`
 8. Cliquez le bouton **▶ Exécuter** (ou F5)
 9. Vous devriez voir "Query returned successfully"
@@ -77,11 +77,11 @@ sudo systemctl enable postgresql
 psql -U postgres
 
 # Créez la base
-CREATE DATABASE covoitgo;
+CREATE DATABASE clando;
 \q
 
 # Appliquez le schéma
-psql -U postgres -d covoitgo -f /chemin/vers/covoitgo/backend/db/schema.sql
+psql -U postgres -d clando -f /chemin/vers/clando/backend/db/schema.sql
 ```
 
 ---
@@ -90,7 +90,7 @@ psql -U postgres -d covoitgo -f /chemin/vers/covoitgo/backend/db/schema.sql
 
 ```bash
 # 1. Naviguez dans le dossier backend
-cd covoitgo/backend
+cd clando/backend
 
 # 2. Installez les dépendances
 npm install
@@ -104,7 +104,7 @@ cp .env.example .env
 ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=covoitgo
+DB_NAME=clando
 DB_USER=postgres
 DB_PASSWORD=VOTRE_MOT_DE_PASSE_POSTGRESQL   ← remplacez ici
 
@@ -123,7 +123,7 @@ CLIENT_URL=http://localhost:5173
 ## ÉTAPE 5 — Configurer le frontend
 
 ```bash
-# Depuis la racine du projet (dossier covoitgo/)
+# Depuis la racine du projet (dossier clando/)
 cp .env.example .env
 ```
 
@@ -137,7 +137,7 @@ VITE_API_URL=http://localhost:5000
 ## ÉTAPE 6 — Installer les dépendances frontend
 
 ```bash
-# Depuis la racine du projet covoitgo/
+# Depuis la racine du projet clando/
 npm install
 ```
 
@@ -149,19 +149,19 @@ Vous avez besoin de **2 terminaux** ouverts en même temps :
 
 ### Terminal 1 — Backend
 ```bash
-cd covoitgo/backend
+cd clando/backend
 npm run dev
 ```
 Vous devez voir :
 ```
-  🚗  Covoitgo API
+  🚗  Clando API
   🌐  http://localhost:5000
-  ✅  Connecté à PostgreSQL — base: covoitgo
+  ✅  Connecté à PostgreSQL — base: clando
 ```
 
 ### Terminal 2 — Frontend
 ```bash
-cd covoitgo
+cd clando
 npm run dev
 ```
 Vous devez voir :
@@ -178,7 +178,7 @@ Vous devez voir :
 ```bash
 # Test de santé de l'API (dans un nouveau terminal)
 curl http://localhost:5000/api/health
-# Doit retourner : {"status":"ok","server":"Covoitgo API",...}
+# Doit retourner : {"status":"ok","server":"Clando API",...}
 ```
 
 Ou ouvrez directement : **http://localhost:5000/api/health** dans votre navigateur.
@@ -188,7 +188,7 @@ Ou ouvrez directement : **http://localhost:5000/api/health** dans votre navigate
 ## Structure finale du projet
 
 ```
-covoitgo/
+clando/
 ├── .env                    ← Variables frontend (VITE_API_URL)
 ├── .env.example
 ├── index.html
@@ -223,16 +223,16 @@ covoitgo/
 
 | Commande | Depuis | Description |
 |----------|--------|-------------|
-| `npm run dev` | `covoitgo/` | Lance le frontend React |
-| `npm run dev` | `covoitgo/backend/` | Lance le backend Express |
-| `npm run build` | `covoitgo/` | Compile le frontend pour la prod |
+| `npm run dev` | `clando/` | Lance le frontend React |
+| `npm run dev` | `clando/backend/` | Lance le backend Express |
+| `npm run build` | `clando/` | Compile le frontend pour la prod |
 
 ---
 
 ## En cas de problème
 
 **"ECONNREFUSED" dans le frontend**
-→ Le backend ne tourne pas. Lancez `npm run dev` dans `covoitgo/backend/`
+→ Le backend ne tourne pas. Lancez `npm run dev` dans `clando/backend/`
 
 **"password authentication failed for user postgres"**
 → Le mot de passe dans `.env` ne correspond pas à celui choisi lors de l'installation PostgreSQL
@@ -241,4 +241,4 @@ covoitgo/
 → Le schéma SQL n'a pas été appliqué. Relancez `schema.sql` dans pgAdmin
 
 **Port 5000 déjà utilisé (Mac)**
-→ Sur Mac, le port 5000 est parfois pris par AirPlay. Changez `PORT=5001` dans `backend/.env` et `VITE_API_URL=http://localhost:5001` dans `covoitgo/.env`
+→ Sur Mac, le port 5000 est parfois pris par AirPlay. Changez `PORT=5001` dans `backend/.env` et `VITE_API_URL=http://localhost:5001` dans `clando/.env`

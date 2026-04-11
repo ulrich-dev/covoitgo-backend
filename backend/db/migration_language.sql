@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Langue utilisateur
---  psql -U postgres -d covoitgo -f db/migration_language.sql
+--  CLANDO — Migration : Langue utilisateur
+--  psql -U postgres -d clando -f db/migration_language.sql
 -- ══════════════════════════════════════════════════════════════
 
 ALTER TABLE users

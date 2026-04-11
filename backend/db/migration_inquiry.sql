@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Statut 'inquiry' pour les contacts
---  psql -U postgres -d covoitgo -f db/migration_inquiry.sql
+--  CLANDO — Migration : Statut 'inquiry' pour les contacts
+--  psql -U postgres -d clando -f db/migration_inquiry.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Mettre à jour le CHECK pour accepter 'inquiry'

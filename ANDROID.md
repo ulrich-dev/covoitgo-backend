@@ -1,4 +1,4 @@
-# Covoitgo — Guide de build Android (Capacitor)
+# Clando — Guide de build Android (Capacitor)
 
 ## Prérequis à installer sur votre PC
 
@@ -38,14 +38,14 @@ Options :
 - Déployer sur Railway, Render, ou un VPS
 - Utiliser ngrok temporairement pour les tests : `ngrok http 5000`
 
-Puis dans `covoitgo/.env` :
+Puis dans `clando/.env` :
 ```
 VITE_API_URL=https://votre-backend.railway.app
 ```
 
 ### Étape 2 — Initialiser le projet Android (1 seule fois)
 ```bash
-cd covoitgo
+cd clando
 npm run android:init
 ```
 → Crée le dossier `android/` avec le projet Android Studio
@@ -98,7 +98,7 @@ Dans Android Studio :
 ### Nom de l'app
 Dans `android/app/src/main/res/values/strings.xml` :
 ```xml
-<string name="app_name">Covoitgo</string>
+<string name="app_name">Clando</string>
 ```
 
 ### Icône de l'app
@@ -184,5 +184,5 @@ Installation : `npm install @capacitor/camera && npx cap sync`
 → L'app Android ne peut PAS appeler localhost
 
 **Écran blanc au démarrage**
-→ Vérifiez la console : `adb logcat | grep Covoitgo`
+→ Vérifiez la console : `adb logcat | grep Clando`
 → Souvent une erreur d'URL API

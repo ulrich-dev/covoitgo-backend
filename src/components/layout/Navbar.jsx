@@ -156,7 +156,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="nav-logo">
             <div className="nav-logo-icon">🚗</div>
-            <span className="nav-logo-text">Covoit<span>go</span></span>
+            <span className="nav-logo-text">Clan<span>do</span></span>
           </Link>
 
           {/* Liens desktop */}

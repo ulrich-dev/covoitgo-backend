@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Messages de contact + Réponses
---  psql -U postgres -d covoitgo -f db/migration_contact.sql
+--  CLANDO — Migration : Messages de contact + Réponses
+--  psql -U postgres -d clando -f db/migration_contact.sql
 -- ══════════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS contact_messages (

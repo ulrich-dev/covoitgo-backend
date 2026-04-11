@@ -59,7 +59,17 @@ router.post('/register',
 
       sendVerificationEmail({ email, firstName, token: verifyToken, lang: language }).catch(console.error)
 
-      res.status(201).json({ success:true, message:'Compte créé ! Vérifiez votre email pour activer votre compte.', needsVerification:true, email })
+      // Générer un JWT temporaire pour l'étape véhicule (sans vérif email)
+      const newUser = await queryOne('SELECT * FROM users WHERE email=$1', [email])
+      const tempToken = newUser ? generateToken(newUser) : null
+
+      res.status(201).json({
+        success: true,
+        message: 'Compte créé ! Vérifiez votre email pour activer votre compte.',
+        needsVerification: true,
+        email,
+        token: tempToken,  // ← JWT pour l'étape véhicule
+      })
 
     } catch (error) {
       console.error('register:', error)

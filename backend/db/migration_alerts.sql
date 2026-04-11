@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Alertes trajets + Favoris
---  psql -U postgres -d covoitgo -f db/migration_alerts.sql
+--  CLANDO — Migration : Alertes trajets + Favoris
+--  psql -U postgres -d clando -f db/migration_alerts.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- ── Table alertes trajets ─────────────────────────────────────

@@ -1,4 +1,4 @@
-# 🚗 Covoitgo — Clone BlaBlaCar
+# 🚗 Clando — Clone BlaBlaCar
 
 Application de covoiturage construite avec React + Vite + React Router.
 
@@ -7,7 +7,7 @@ Application de covoiturage construite avec React + Vite + React Router.
 ## 📁 Structure du projet
 
 ```
-covoitgo/
+clando/
 ├── index.html                    ← Point d'entrée HTML
 ├── vite.config.js                ← Config Vite
 ├── package.json                  ← Dépendances
@@ -53,14 +53,14 @@ npm --version     # doit afficher 9.x.x ou +
 Si vous avez Git :
 ```bash
 git clone <url-du-repo>
-cd covoitgo
+cd clando
 ```
 
-Ou simplement placer le dossier `covoitgo/` quelque part sur votre machine.
+Ou simplement placer le dossier `clando/` quelque part sur votre machine.
 
 **3. Installer les dépendances**
 ```bash
-cd covoitgo
+cd clando
 npm install
 ```
 > ⏳ Cette étape peut prendre 30-60 secondes. Elle télécharge React, Vite, React Router, etc.

@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Système Freemium Conducteur
---  psql -U postgres -d covoitgo -f db/migration_freemium.sql
+--  CLANDO — Migration : Système Freemium Conducteur
+--  psql -U postgres -d clando -f db/migration_freemium.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Colonnes sur la table users
@@ -9,7 +9,7 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS trips_published    INTEGER     DEFAULT 0,
   -- Trajets gratuits restants (10 au départ)
   ADD COLUMN IF NOT EXISTS free_trips_left    INTEGER     DEFAULT 10,
-  -- Montant dû à Covoitgo (FCFA)
+  -- Montant dû à Clando (FCFA)
   ADD COLUMN IF NOT EXISTS balance_due        DECIMAL(10,2) DEFAULT 0.00,
   -- Blocage pour impayé (admin le lève après paiement)
   ADD COLUMN IF NOT EXISTS payment_blocked    BOOLEAN     DEFAULT false,

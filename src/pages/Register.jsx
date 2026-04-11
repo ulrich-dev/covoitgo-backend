@@ -1,4 +1,4 @@
-import { API_URL, authFetch } from '../utils/api'
+import { API_URL, authFetch, saveToken } from '../utils/api'
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
@@ -13,7 +13,7 @@ const STEPS = [
 ]
 
 export default function Register() {
-  const { register, login } = useAuth()
+  const { register, login, setUser } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep]               = useState(0)
@@ -68,49 +68,47 @@ export default function Register() {
     e.preventDefault()
     if (!validateStep()) return
     setLoading(true)
+    setError('')
     try {
       const data = await register(form)
-      if (data.success || data.needsVerification) {
-        setRegEmail(form.email)
 
-        // Connecter automatiquement l'utilisateur pour que l'étape véhicule ait un JWT
-        if (data.success) {
-          try {
-            const loginResult = await login(form.email, form.password)
-            if (!loginResult?.success) {
-              console.warn('Auto-login après inscription échoué')
-            }
-            // Petit délai pour s'assurer que le JWT est bien sauvegardé
-            await new Promise(r => setTimeout(r, 300))
-          } catch (e) {
-            console.warn('Auto-login error:', e)
-          }
-        }
-
-        // Uploader la photo si l'utilisateur en a choisi une
-        if (avatarFile && data.success) {
-          try {
-            const fd = new FormData()
-            fd.append('avatar', avatarFile)
-            await authFetch(`${API_URL}/api/auth/avatar`, {
-              method: 'POST', credentials: 'include', body: fd,
-            })
-          } catch {} // non bloquant
-        }
-
-        // Si conducteur → afficher l'étape véhicule (step 3) avant la confirmation
-        if (form.role === 'driver' || form.role === 'both') {
-          setStep(3) // step véhicule
-        } else {
-          setRegistered(true)
-        }
-      } else {
+      // ── Email déjà utilisé ou autre erreur ───────────────────
+      if (!data.success && !data.needsVerification) {
         setError(data.message || 'Erreur lors de la création du compte.')
         setLoading(false)
+        return
       }
+
+      setRegEmail(form.email)
+
+      // ── Sauvegarder le JWT reçu à l'inscription ───────────────
+      // Ce token permet d'accéder à l'API sans vérification d'email
+      if (data.token) {
+        saveToken(data.token)
+        // Mettre à jour l'état utilisateur
+        if (data.user) setUser(data.user)
+      }
+
+      // ── Uploader la photo ─────────────────────────────────────
+      if (avatarFile) {
+        try {
+          const fd = new FormData()
+          fd.append('avatar', avatarFile)
+          await authFetch(`${API_URL}/api/auth/avatar`, {
+            method: 'POST', body: fd,
+          })
+        } catch {}
+      }
+
+      // ── Étape suivante ────────────────────────────────────────
+      if (form.role === 'driver' || form.role === 'both') {
+        setStep(3)
+      } else {
+        setRegistered(true)
+      }
+
     } catch {
-      setError('Impossible de contacter le serveur. Vérifiez que le backend est lancé.')
-      setLoading(false)
+      setError('Impossible de contacter le serveur.')
     } finally {
       setLoading(false)
     }

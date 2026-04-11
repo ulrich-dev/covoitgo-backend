@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Logs de connexion
---  psql -U postgres -d covoitgo -f db/migration_connection_logs.sql
+--  CLANDO — Migration : Logs de connexion
+--  psql -U postgres -d clando -f db/migration_connection_logs.sql
 -- ══════════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS connection_logs (

@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Véhicule + Documents conducteur
+--  CLANDO — Migration : Véhicule + Documents conducteur
 --  Exécutez UNE SEULE FOIS :
---  psql -U postgres -d covoitgo -f db/migration_vehicle.sql
+--  psql -U postgres -d clando -f db/migration_vehicle.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- ── Informations véhicule ──────────────────────────────────────

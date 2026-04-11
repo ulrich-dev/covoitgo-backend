@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Rappels automatiques + Avis
---  psql -U postgres -d covoitgo -f db/migration_scheduler.sql
+--  CLANDO — Migration : Rappels automatiques + Avis
+--  psql -U postgres -d clando -f db/migration_scheduler.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Flags pour éviter les doublons d'envoi

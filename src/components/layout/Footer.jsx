@@ -77,7 +77,7 @@ export default function Footer() {
             <div>
               <Link to="/" style={{ display:'flex', alignItems:'center', gap:9, marginBottom:16 }}>
                 <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#1A9E8A,#22C6AD)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🚗</div>
-                <span style={{ fontWeight:800, fontSize:18, color:'#fff', letterSpacing:'-0.04em' }}>Covoit<span style={{ color:'#1A9E8A' }}>go</span></span>
+                <span style={{ fontWeight:800, fontSize:18, color:'#fff', letterSpacing:'-0.04em' }}>Clan<span style={{ color:'#1A9E8A' }}>do</span></span>
               </Link>
               <p style={{ fontSize:13.5, lineHeight:1.8, marginBottom:22, maxWidth:230, fontWeight:400 }}>
                 {t.footer.tagline}

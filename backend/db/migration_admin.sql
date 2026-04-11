@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Rôle administrateur
+--  CLANDO — Migration : Rôle administrateur
 --  Exécutez UNE SEULE FOIS :
---  psql -U postgres -d covoitgo -f db/migration_admin.sql
+--  psql -U postgres -d clando -f db/migration_admin.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Ajouter la colonne is_admin

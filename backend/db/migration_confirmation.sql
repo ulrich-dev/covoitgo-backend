@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Migration : Confirmation mutuelle des trajets
---  psql -U postgres -d covoitgo -f db/migration_confirmation.sql
+--  CLANDO — Migration : Confirmation mutuelle des trajets
+--  psql -U postgres -d clando -f db/migration_confirmation.sql
 -- ══════════════════════════════════════════════════════════════
 
 -- Colonnes de confirmation sur les réservations

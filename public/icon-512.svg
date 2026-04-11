@@ -45,10 +45,10 @@
     <rect x="0" y="86" width="232" height="10" fill="rgba(26,158,138,0.18)" rx="2"/>
   </g>
 
-  <!-- Texte COVOITGO -->
+  <!-- Texte CLANDO -->
   <text x="256" y="470" text-anchor="middle"
     font-family="'Arial Black', 'Impact', sans-serif"
     font-size="52" font-weight="900"
     fill="rgba(255,255,255,0.95)"
-    letter-spacing="-1">COVOITGO</text>
+    letter-spacing="-1">CLANDO</text>
 </svg>

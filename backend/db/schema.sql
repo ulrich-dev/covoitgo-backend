@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════
---  COVOITGO — Schéma de base de données PostgreSQL
+--  CLANDO — Schéma de base de données PostgreSQL
 --  Version 1.0
 -- ══════════════════════════════════════════════════════════════
 
