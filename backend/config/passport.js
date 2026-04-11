@@ -38,7 +38,7 @@ async function findOrCreateOAuthUser({ provider, providerId, email, firstName, l
         email_verified, oauth_provider, ${col})
      VALUES ($1,$2,$3,'both',$4,$5,true,$6,$7) RETURNING *`,
     [
-      email || `${provider}_${providerId}@covoitgo.app`,
+      email || `${provider}_${providerId}@clando.app`,
       firstName || 'Utilisateur',
       lastName  || '',
       randomColor(),

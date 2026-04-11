@@ -126,7 +126,7 @@ export default function PaymentWall({ balanceDue: balanceProp }) {
             <div>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Montant dû</div>
               <div style={{ fontSize: 36, fontWeight: 900, color: '#EF4444', letterSpacing: '-.03em' }}>{fmtFCFA(balanceDue)}</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Commission Covoitgo (10%) sur votre dernier trajet</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Commission Clando (10%) sur votre dernier trajet</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Vos trajets</div>

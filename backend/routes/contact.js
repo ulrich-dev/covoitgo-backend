@@ -250,13 +250,13 @@ router.post('/admin/:id/reply', requireAuth, requireAdmin,
         `SELECT first_name, last_name, email FROM users WHERE id = $1`, [req.session.userId]
       )
       const adminUser = admin.rows[0]
-      const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : 'Support Covoitgo'
+      const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : 'Support Clando'
 
       // Sauvegarder la réponse
       const saved = await dbQuery(
         `INSERT INTO contact_replies (contact_id, author_type, author_name, author_email, body)
          VALUES ($1, 'admin', $2, $3, $4) RETURNING *`,
-        [id, adminName, adminUser?.email || 'support@covoitgo.cm', replyBody]
+        [id, adminName, adminUser?.email || 'support@clando.cm', replyBody]
       )
 
       // Mettre à jour le statut

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-//  COVOITGO — Traductions des emails
+//  CLANDO — Traductions des emails
 //  Usage : const e = EMAIL_T[user.language || 'en']
 // ═══════════════════════════════════════════════════════════════
 
@@ -8,20 +8,20 @@ const EMAIL_T = {
   fr: {
     greeting:          (name) => `Bonjour ${name},`,
     footer_unsubscribe:'Pour ne plus recevoir ces emails, gérez vos préférences dans votre profil.',
-    footer_team:       "L'équipe Covoitgo 🚗",
-    view_btn:          'Voir sur Covoitgo →',
-    help:              'Besoin d\'aide ? Contactez-nous à support@covoitgo.cm',
+    footer_team:       "L'équipe Clando 🚗",
+    view_btn:          'Voir sur Clando →',
+    help:              'Besoin d\'aide ? Contactez-nous à support@clando.cm',
 
     // Vérification email
-    verify_subject:    'Vérifiez votre adresse email — Covoitgo',
+    verify_subject:    'Vérifiez votre adresse email — Clando',
     verify_title:      'Confirmez votre email',
-    verify_body:       'Merci de vous être inscrit sur Covoitgo ! Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et activer votre compte.',
+    verify_body:       'Merci de vous être inscrit sur Clando ! Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et activer votre compte.',
     verify_btn:        'Confirmer mon email',
     verify_expiry:     'Ce lien expire dans 24 heures.',
     verify_ignore:     'Si vous n\'avez pas créé de compte, ignorez cet email.',
 
     // Réinitialisation mot de passe
-    reset_subject:     'Réinitialisation de mot de passe — Covoitgo',
+    reset_subject:     'Réinitialisation de mot de passe — Clando',
     reset_title:       'Nouveau mot de passe',
     reset_body:        'Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous.',
     reset_btn:         'Réinitialiser mon mot de passe',
@@ -90,7 +90,7 @@ const EMAIL_T = {
     confirm_btn:         'Confirmer le trajet',
 
     // Compte suspendu
-    blocked_subject:     'Votre compte Covoitgo a été suspendu',
+    blocked_subject:     'Votre compte Clando a été suspendu',
     blocked_title:       'Compte suspendu',
     blocked_body:        'Votre compte a été suspendu suite à une violation de nos conditions d\'utilisation.',
     blocked_contact:     'Contacter le support',
@@ -118,18 +118,18 @@ const EMAIL_T = {
   en: {
     greeting:          (name) => `Hello ${name},`,
     footer_unsubscribe:'To stop receiving these emails, manage your preferences in your profile.',
-    footer_team:       'The Covoitgo Team 🚗',
-    view_btn:          'View on Covoitgo →',
-    help:              'Need help? Contact us at support@covoitgo.cm',
+    footer_team:       'The Clando Team 🚗',
+    view_btn:          'View on Clando →',
+    help:              'Need help? Contact us at support@clando.cm',
 
-    verify_subject:    'Verify your email address — Covoitgo',
+    verify_subject:    'Verify your email address — Clando',
     verify_title:      'Confirm your email',
-    verify_body:       'Thank you for signing up to Covoitgo! Click the button below to confirm your email address and activate your account.',
+    verify_body:       'Thank you for signing up to Clando! Click the button below to confirm your email address and activate your account.',
     verify_btn:        'Confirm my email',
     verify_expiry:     'This link expires in 24 hours.',
     verify_ignore:     'If you didn\'t create an account, you can safely ignore this email.',
 
-    reset_subject:     'Password reset — Covoitgo',
+    reset_subject:     'Password reset — Clando',
     reset_title:       'Reset your password',
     reset_body:        'You requested a password reset. Click the button below.',
     reset_btn:         'Reset my password',
@@ -189,7 +189,7 @@ const EMAIL_T = {
     confirm_body:        'Your ride is complete. Confirm it to validate payments.',
     confirm_btn:         'Confirm ride',
 
-    blocked_subject:     'Your Covoitgo account has been suspended',
+    blocked_subject:     'Your Clando account has been suspended',
     blocked_title:       'Account suspended',
     blocked_body:        'Your account has been suspended due to a violation of our terms of use.',
     blocked_contact:     'Contact support',

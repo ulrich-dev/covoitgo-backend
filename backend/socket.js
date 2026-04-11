@@ -1,12 +1,25 @@
 const { Server }  = require('socket.io')
 const { query, queryOne } = require('./db')
+const jwt = require('jsonwebtoken')
 
 let io = null
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'dev_secret_changez_en_prod'
 
 function initSocket(server, sessionMiddleware) {
   io = new Server(server, {
     cors: {
-      origin:      process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, cb) => {
+        // Accepter toutes les origines vercel.app + CLIENT_URL
+        if (!origin) return cb(null, true)
+        const allowed = [
+          process.env.CLIENT_URL,
+          'http://localhost:5173',
+          'http://localhost:3000',
+        ].filter(Boolean)
+        const ok = allowed.some(u => origin === u || origin.endsWith('.vercel.app'))
+        cb(null, ok)
+      },
       credentials: true,
     },
   })
@@ -16,12 +29,28 @@ function initSocket(server, sessionMiddleware) {
     sessionMiddleware(socket.request, {}, next)
   })
 
-  // Authentifier le socket
+  // Authentifier le socket — JWT ou session
   io.use((socket, next) => {
+    // 1. Essayer le JWT depuis le handshake auth
+    const token = socket.handshake.auth?.token
+      || socket.handshake.headers?.authorization?.replace('Bearer ', '')
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET)
+        socket.userId = decoded.userId
+        return next()
+      } catch {}
+    }
+
+    // 2. Fallback session
     const userId = socket.request.session?.userId
-    if (!userId) return next(new Error('Non authentifié'))
-    socket.userId = userId
-    next()
+    if (userId) {
+      socket.userId = userId
+      return next()
+    }
+
+    next(new Error('Non authentifié'))
   })
 
   io.on('connection', (socket) => {

@@ -59,7 +59,7 @@ export default function AdminLayout() {
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#1A9E8A,#22C6AD)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🚗</div>
           {!collapsed && (
             <div>
-              <div style={{ color: '#fff', fontWeight: 900, fontSize: 15, letterSpacing: '-.01em' }}>Covoitgo</div>
+              <div style={{ color: '#fff', fontWeight: 900, fontSize: 15, letterSpacing: '-.01em' }}>Clando</div>
               <div style={{ color: '#1A9E8A', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Admin</div>
             </div>
           )}

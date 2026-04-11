@@ -518,7 +518,7 @@ export const TRANSLATIONS = {
         privacy:  'Confidentialité',
         cookies:  'Cookies',
       },
-      copyright: (y) => `© ${y} Covoitgo. Tous droits réservés.`,
+      copyright: (y) => `© ${y} Clando. Tous droits réservés.`,
     },
 
     // ── Erreurs ───────────────────────────────────────────
@@ -1100,7 +1100,7 @@ export const TRANSLATIONS = {
         privacy:  'Privacy',
         cookies:  'Cookies',
       },
-      copyright: (y) => `© ${y} Covoitgo. All rights reserved.`,
+      copyright: (y) => `© ${y} Clando. All rights reserved.`,
     },
 
     errors: {

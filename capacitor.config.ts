@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'cm.covoitgo.app',
-  appName: 'Covoitgo',
+  appId: 'cm.clando.app',
+  appName: 'Clando',
   webDir: 'dist',
   server: {
     // En développement : pointer vers votre backend réel

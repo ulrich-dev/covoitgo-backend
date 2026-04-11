@@ -147,7 +147,7 @@ export default function Contact() {
         <div style={{ maxWidth: 960, margin: '-28px auto 0', padding: '0 24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 36 }}>
             {[
-              { icon: '📧', label: 'Email', value: 'support@covoitgo.cm', href: 'mailto:support@covoitgo.cm' },
+              { icon: '📧', label: 'Email', value: 'support@clando.cm', href: 'mailto:support@clando.cm' },
               { icon: '📞', label: 'Téléphone', value: '+237 6XX XXX XXX', href: 'tel:+237600000000' },
               { icon: '💬', label: 'WhatsApp', value: 'Chat direct', href: 'https://wa.me/237600000000' },
               { icon: '🕐', label: 'Horaires', value: 'Lun–Sam 8h–20h', href: null },

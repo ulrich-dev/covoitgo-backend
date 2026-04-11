@@ -1,18 +1,24 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
+import { API_URL, getToken } from '../utils/api'
 
 // Instance socket partagée (singleton)
 let socketInstance = null
 
 function getSocket() {
   if (!socketInstance) {
-    socketInstance = io({            // même origine → proxy Vite forward vers :5000
+    const serverUrl = API_URL || window.location.origin
+    socketInstance = io(serverUrl, {
       withCredentials: true,
       autoConnect:     false,
       reconnection:    true,
-      reconnectionDelay:       1000,
-      reconnectionAttempts:    10,
+      reconnectionDelay:    1000,
+      reconnectionAttempts: 10,
       transports: ['websocket', 'polling'],
+      auth: (cb) => {
+        // Envoyer le JWT au socket pour l'authentification
+        cb({ token: getToken() })
+      },
     })
   }
   return socketInstance

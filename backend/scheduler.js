@@ -1,5 +1,5 @@
 /**
- * scheduler.js — Notifications automatiques Covoitgo
+ * scheduler.js — Notifications automatiques Clando
  * Tourne toutes les minutes via node-cron
  *
  * Rappels de départ  : 15 min et 5 min avant
@@ -188,7 +188,7 @@ async function runDepartureReminders() {
           email:         row.driver_email,
           name:          row.driver_first,
           role:          'driver',
-          confirmerName: 'Covoitgo',
+          confirmerName: 'Clando',
           from:          row.origin_city,
           to:            row.destination_city,
           bookingId:     row.booking_id,
@@ -197,7 +197,7 @@ async function runDepartureReminders() {
           email:         row.pax_email,
           name:          row.pax_first,
           role:          'passenger',
-          confirmerName: 'Covoitgo',
+          confirmerName: 'Clando',
           from:          row.origin_city,
           to:            row.destination_city,
           bookingId:     row.booking_id,

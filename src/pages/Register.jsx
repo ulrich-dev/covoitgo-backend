@@ -50,6 +50,8 @@ export default function Register() {
     if (step===1) {
       if (!form.email||!form.password||!form.confirmPassword) { setError('Veuillez remplir tous les champs.'); return false }
       if (form.password.length<8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return false }
+      if (!/[A-Z]/.test(form.password)) { setError('Le mot de passe doit contenir au moins une majuscule.'); return false }
+      if (!/[0-9]/.test(form.password)) { setError('Le mot de passe doit contenir au moins un chiffre.'); return false }
       if (form.password!==form.confirmPassword) { setError('Les mots de passe ne correspondent pas.'); return false }
     }
     return true
@@ -71,11 +73,18 @@ export default function Register() {
       if (data.success || data.needsVerification) {
         setRegEmail(form.email)
 
-        // Connecter automatiquement l'utilisateur pour que l'étape 3 ait une session
+        // Connecter automatiquement l'utilisateur pour que l'étape véhicule ait un JWT
         if (data.success) {
           try {
-            await login(form.email, form.password)
-          } catch {} // non bloquant
+            const loginResult = await login(form.email, form.password)
+            if (!loginResult?.success) {
+              console.warn('Auto-login après inscription échoué')
+            }
+            // Petit délai pour s'assurer que le JWT est bien sauvegardé
+            await new Promise(r => setTimeout(r, 300))
+          } catch (e) {
+            console.warn('Auto-login error:', e)
+          }
         }
 
         // Uploader la photo si l'utilisateur en a choisi une
@@ -191,7 +200,7 @@ export default function Register() {
           <div style={{ textAlign:'center', marginBottom:32 }}>
             <Link to="/" style={{ display:'inline-flex', alignItems:'center', gap:8, marginBottom:22 }}>
               <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#1A9E8A,#22C6AD)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 4px 12px rgba(26,158,138,0.28)' }}>🚗</div>
-              <span style={{ fontWeight:800, fontSize:18, letterSpacing:'-0.02em', color:'#1C1917' }}>Covoitgo</span>
+              <span style={{ fontWeight:800, fontSize:18, letterSpacing:'-0.02em', color:'#1C1917' }}>Clando</span>
             </Link>
             <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.03em', color:'#1C1917', marginBottom:6 }}>Créer mon compte 🎉</h1>
             <p style={{ fontSize:14.5, color:'#6B6560' }}>Rejoignez des millions de covoitureurs</p>

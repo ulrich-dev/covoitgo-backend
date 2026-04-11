@@ -82,7 +82,7 @@ export default function VerifyEmail() {
               <div className="icon-circle" style={{ width:80, height:80, borderRadius:'50%', background:'linear-gradient(135deg,var(--teal),#22C6AD)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:38, boxShadow:'0 12px 36px rgba(26,158,138,.35)' }}>✅</div>
               <h1 style={{ fontSize:28, fontWeight:800, letterSpacing:'-.03em', marginBottom:10 }}>Email vérifié !</h1>
               <p style={{ color:'var(--text-muted)', fontSize:15, lineHeight:1.7, marginBottom:28, maxWidth:340, margin:'0 auto 28px' }}>
-                Votre compte est activé. Bienvenue sur Covoitgo 🎉<br />
+                Votre compte est activé. Bienvenue sur Clando 🎉<br />
                 <span style={{ fontSize:13, color:'var(--text-dim)' }}>Redirection automatique dans 2 secondes…</span>
               </p>
               {/* Progress bar */}

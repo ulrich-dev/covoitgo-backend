@@ -7,7 +7,7 @@ const { EMAIL_T } = require('./emailTranslations')
 // ══════════════════════════════════════════════
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
-const APP_NAME   = 'Covoitgo'
+const APP_NAME   = 'Clando'
 
 // Adresse expéditeur — configurable via SMTP_FROM
 const SENDER = process.env.SMTP_FROM
@@ -16,7 +16,16 @@ const SENDER = process.env.SMTP_FROM
 
 // ── Fonction d'envoi unifiée ──────────────────────────────────
 async function sendMail({ to, subject, html }) {
-  console.log(`📧  Tentative envoi → ${to}`)
+  // Si pas de domaine vérifié Resend → rediriger vers l'email de test
+  const recipient = process.env.RESEND_TEST_EMAIL
+    ? process.env.RESEND_TEST_EMAIL
+    : to
+
+  if (process.env.RESEND_TEST_EMAIL && recipient !== to) {
+    console.log(`📧  [TEST MODE] Redirection ${to} → ${recipient}`)
+  }
+
+  console.log(`📧  Tentative envoi → ${recipient}`)
   console.log(`    RESEND_API_KEY: ${process.env.RESEND_API_KEY ? '✅ définie' : '❌ manquante'}`)
   console.log(`    SMTP_HOST: ${process.env.SMTP_HOST || '❌ non défini'}`)
 
@@ -27,8 +36,10 @@ async function sendMail({ to, subject, html }) {
     const resend = new Resend(process.env.RESEND_API_KEY)
     const { data, error } = await resend.emails.send({
       from:    SENDER,
-      to:      [to],
-      subject,
+      to:      [recipient],
+      subject: process.env.RESEND_TEST_EMAIL
+        ? `[TEST → ${to}] ${subject}`
+        : subject,
       html,
     })
     if (error) {
@@ -271,16 +282,16 @@ const sendAccountBlockedEmail = async ({ email, firstName, lang = 'en' }) => {
 const sendAccountReactivatedEmail = async ({ email, firstName, lang = 'en' }) => {
   const e = EMAIL_T[lang] || EMAIL_T['en']
   const msg = lang === 'fr'
-    ? `Votre compte a été réactivé. Vous pouvez à nouveau utiliser Covoitgo.`
-    : `Your account has been reactivated. You can use Covoitgo again.`
+    ? `Votre compte a été réactivé. Vous pouvez à nouveau utiliser Clando.`
+    : `Your account has been reactivated. You can use Clando again.`
   const html = wrapHtml(`
     <h2 style="color:#1c1917;font-size:22px;font-weight:800;margin:0 0 16px;">✅ ${lang === 'fr' ? 'Compte réactivé' : 'Account reactivated'}</h2>
     <p style="color:#6b635c;font-size:15px;line-height:1.7;margin:0 0 20px;">
       ${e.greeting(firstName)}<br>${msg}
     </p>
-    ${btn(`${CLIENT_URL}`, lang === 'fr' ? 'Retour à Covoitgo →' : 'Back to Covoitgo →')}
+    ${btn(`${CLIENT_URL}`, lang === 'fr' ? 'Retour à Clando →' : 'Back to Clando →')}
   `, lang)
-  await sendMail({ to: email, subject: lang === 'fr' ? 'Votre compte Covoitgo a été réactivé' : 'Your Covoitgo account has been reactivated', html })
+  await sendMail({ to: email, subject: lang === 'fr' ? 'Votre compte Clando a été réactivé' : 'Your Clando account has been reactivated', html })
   console.log(`📧  Account reactivated → ${email} [${lang}]`)
 }
 
@@ -371,7 +382,7 @@ const sendTripDisputedEmail = async ({ email, name, disputerName, from, to, reas
 // ══════════════════════════════════════════════
 //  11. CONTACT / SUPPORT
 // ══════════════════════════════════════════════
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@covoitgo.cm'
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@clando.cm'
 
 const CONTACT_SUBJECTS = {
   account:   { fr: 'Problème de compte',       en: 'Account issue' },

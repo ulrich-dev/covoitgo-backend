@@ -385,7 +385,7 @@ export default function Profile() {
               <div style={{ background:'#fff', borderRadius:14, padding:'20px', border:'1px solid #E2E8F0' }}>
                 <div style={{ fontSize:14, fontWeight:800, color:'#1A1A1A', marginBottom:12 }}>ℹ️ À propos du portefeuille</div>
                 <p style={{ fontSize:13, color:'#6B7280', lineHeight:1.7, margin:0 }}>
-                  Le portefeuille affiche vos gains estimés en tant que conducteur (après commission de 10%) et vos dépenses en tant que passager. Le paiement se fait directement à bord ou via Mobile Money — Covoitgo ne gère pas les transactions financières pour le moment.
+                  Le portefeuille affiche vos gains estimés en tant que conducteur (après commission de 10%) et vos dépenses en tant que passager. Le paiement se fait directement à bord ou via Mobile Money — Clando ne gère pas les transactions financières pour le moment.
                 </p>
               </div>
             </div>

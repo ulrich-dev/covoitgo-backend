@@ -146,7 +146,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.get('/api/health', (req, res) => {
   res.json({
     status:  'ok',
-    server:  'Covoitgo API',
+    server:  'Clando API',
     version: '1.3.0',
     env:     process.env.NODE_ENV || 'development',
     oauth: {
@@ -183,7 +183,7 @@ async function start() {
   // 3. Démarrer le serveur
   server.listen(PORT, '0.0.0.0', () => {
     console.log('')
-    console.log('  🚗  Covoitgo API v2.0')
+    console.log('  🚗  Clando API v2.0')
     console.log(`  💻  Port     : ${PORT}`)
     console.log(`  🌍  Env      : ${process.env.NODE_ENV || 'development'}`)
     console.log(`  🔐  Google   : ${process.env.GOOGLE_CLIENT_ID  ? '✅' : '❌ manquant'}`)

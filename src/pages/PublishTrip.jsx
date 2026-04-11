@@ -716,7 +716,7 @@ export default function PublishTrip() {
                     </div>
                   )}
                   <div className="field-hint">
-                    Commission Covoitgo : 10% · Vous recevrez {form.price ? fmtFCFA(Math.round(form.price * 0.9)) : '—'} par réservation.
+                    Commission Clando : 10% · Vous recevrez {form.price ? fmtFCFA(Math.round(form.price * 0.9)) : '—'} par réservation.
                   </div>
                 </div>
 

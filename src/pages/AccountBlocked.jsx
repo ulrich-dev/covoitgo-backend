@@ -81,18 +81,18 @@ export default function AccountBlocked() {
             <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
               Pour contester cette décision ou obtenir plus d'informations, contactez notre support :
             </div>
-            <a href="mailto:support@covoitgo.cm" style={{
+            <a href="mailto:support@clando.cm" style={{
               display: 'inline-block', marginTop: 10,
               fontSize: 14, fontWeight: 800, color: '#1A9E8A',
               textDecoration: 'none',
             }}>
-              📧 support@covoitgo.cm
+              📧 support@clando.cm
             </a>
           </div>
 
           {/* Boutons */}
           <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
-            <a href="mailto:support@covoitgo.cm?subject=Demande de déblocage de compte&body=Bonjour, mon compte est bloqué. Mon adresse email est : " style={{ textDecoration: 'none' }}>
+            <a href="mailto:support@clando.cm?subject=Demande de déblocage de compte&body=Bonjour, mon compte est bloqué. Mon adresse email est : " style={{ textDecoration: 'none' }}>
               <button style={{
                 width: '100%', padding: '13px',
                 background: 'linear-gradient(135deg,#1A9E8A,#22C6AD)',
@@ -117,7 +117,7 @@ export default function AccountBlocked() {
           </div>
 
           <p style={{ fontSize: 11, color: '#CBD5E1', marginTop: 20 }}>
-            Covoitgo · Cameroun — Si votre compte a été bloqué par erreur, nous nous en excusons.
+            Clando · Cameroun — Si votre compte a été bloqué par erreur, nous nous en excusons.
           </p>
         </div>
       </div>

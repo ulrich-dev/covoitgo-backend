@@ -161,7 +161,7 @@ export default function Login() {
           <div style={{ position:'absolute', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,.05)', bottom:'-8%', left:'-8%' }} />
           <Link to="/" style={{ display:'flex', alignItems:'center', gap:9, position:'relative', zIndex:1 }}>
             <div style={{ width:36, height:36, borderRadius:10, background:'rgba(255,255,255,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🚗</div>
-            <span style={{ fontWeight:800, fontSize:19, color:'#fff', letterSpacing:'-.03em' }}>Covoitgo</span>
+            <span style={{ fontWeight:800, fontSize:19, color:'#fff', letterSpacing:'-.03em' }}>Clando</span>
           </Link>
           <div style={{ position:'relative', zIndex:1 }}>
             <div style={{ fontSize:52, marginBottom:24 }}>🚗</div>

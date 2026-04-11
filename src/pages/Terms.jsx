@@ -7,7 +7,7 @@ const CONTENT = {
     sections: [
       {
         title: '1. Objet',
-        text: `Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») ont pour objet de définir les modalités et conditions dans lesquelles Covoitgo (ci-après « la Plateforme ») met à la disposition des utilisateurs ses services de mise en relation entre conducteurs et passagers souhaitant effectuer des trajets en covoiturage sur le territoire français et européen.`,
+        text: `Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») ont pour objet de définir les modalités et conditions dans lesquelles Clando (ci-après « la Plateforme ») met à la disposition des utilisateurs ses services de mise en relation entre conducteurs et passagers souhaitant effectuer des trajets en covoiturage sur le territoire français et européen.`,
       },
       {
         title: '2. Acceptation des conditions',
@@ -15,11 +15,11 @@ const CONTENT = {
       },
       {
         title: '3. Inscription et compte utilisateur',
-        text: `Pour utiliser les services de Covoitgo, vous devez créer un compte en fournissant des informations exactes et complètes. Vous êtes seul responsable de la confidentialité de vos identifiants de connexion. Vous vous engagez à nous informer immédiatement en cas d'utilisation non autorisée de votre compte. Covoitgo se réserve le droit de suspendre ou supprimer tout compte en cas de violation des présentes CGU.`,
+        text: `Pour utiliser les services de Clando, vous devez créer un compte en fournissant des informations exactes et complètes. Vous êtes seul responsable de la confidentialité de vos identifiants de connexion. Vous vous engagez à nous informer immédiatement en cas d'utilisation non autorisée de votre compte. Clando se réserve le droit de suspendre ou supprimer tout compte en cas de violation des présentes CGU.`,
       },
       {
         title: '4. Services proposés',
-        text: `Covoitgo est une plateforme de mise en relation qui permet aux conducteurs de proposer des places disponibles dans leur véhicule et aux passagers de réserver ces places. Covoitgo n'est pas partie prenante au contrat de transport conclu entre le conducteur et les passagers. La Plateforme propose également un système de messagerie sécurisée, un système d'évaluation et d'avis, ainsi qu'un traitement sécurisé des paiements.`,
+        text: `Clando est une plateforme de mise en relation qui permet aux conducteurs de proposer des places disponibles dans leur véhicule et aux passagers de réserver ces places. Clando n'est pas partie prenante au contrat de transport conclu entre le conducteur et les passagers. La Plateforme propose également un système de messagerie sécurisée, un système d'évaluation et d'avis, ainsi qu'un traitement sécurisé des paiements.`,
       },
       {
         title: '5. Obligations des conducteurs',
@@ -31,11 +31,11 @@ const CONTENT = {
       },
       {
         title: '7. Prix et paiement',
-        text: `Le prix des trajets est fixé librement par les conducteurs dans les limites fixées par la Plateforme. Covoitgo perçoit une commission sur chaque transaction. Les paiements sont traités de manière sécurisée. En cas d'annulation, les politiques de remboursement applicables sont celles affichées au moment de la réservation.`,
+        text: `Le prix des trajets est fixé librement par les conducteurs dans les limites fixées par la Plateforme. Clando perçoit une commission sur chaque transaction. Les paiements sont traités de manière sécurisée. En cas d'annulation, les politiques de remboursement applicables sont celles affichées au moment de la réservation.`,
       },
       {
         title: '8. Responsabilité',
-        text: `Covoitgo agit en qualité d'intermédiaire et ne peut être tenu responsable des dommages résultant du comportement des utilisateurs, des accidents de la route, des retards, annulations ou tout autre incident survenant lors d'un trajet. Chaque utilisateur est responsable de ses propres actions sur la Plateforme.`,
+        text: `Clando agit en qualité d'intermédiaire et ne peut être tenu responsable des dommages résultant du comportement des utilisateurs, des accidents de la route, des retards, annulations ou tout autre incident survenant lors d'un trajet. Chaque utilisateur est responsable de ses propres actions sur la Plateforme.`,
       },
       {
         title: '9. Données personnelles',
@@ -43,11 +43,11 @@ const CONTENT = {
       },
       {
         title: '10. Modifications des CGU',
-        text: `Covoitgo se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés de toute modification substantielle par email ou notification dans l'application. La poursuite de l'utilisation de la Plateforme après notification vaut acceptation des nouvelles conditions.`,
+        text: `Clando se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés de toute modification substantielle par email ou notification dans l'application. La poursuite de l'utilisation de la Plateforme après notification vaut acceptation des nouvelles conditions.`,
       },
       {
         title: '11. Droit applicable',
-        text: `Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux français seront compétents. Covoitgo encourage les utilisateurs à tenter de résoudre tout litige à l'amiable avant tout recours judiciaire.`,
+        text: `Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux français seront compétents. Clando encourage les utilisateurs à tenter de résoudre tout litige à l'amiable avant tout recours judiciaire.`,
       },
     ],
   },
@@ -57,7 +57,7 @@ const CONTENT = {
     sections: [
       {
         title: '1. Purpose',
-        text: 'These Terms of Service ("Terms") define the terms and conditions under which Covoitgo ("the Platform") provides its ride-sharing matching services to users wishing to travel together across France and Europe.',
+        text: 'These Terms of Service ("Terms") define the terms and conditions under which Clando ("the Platform") provides its ride-sharing matching services to users wishing to travel together across France and Europe.',
       },
       {
         title: '2. Acceptance of Terms',
@@ -65,11 +65,11 @@ const CONTENT = {
       },
       {
         title: '3. Account Registration',
-        text: 'To use Covoitgo services, you must create an account by providing accurate and complete information. You are solely responsible for maintaining the confidentiality of your login credentials. You agree to notify us immediately of any unauthorized use of your account. Covoitgo reserves the right to suspend or delete any account that violates these Terms.',
+        text: 'To use Clando services, you must create an account by providing accurate and complete information. You are solely responsible for maintaining the confidentiality of your login credentials. You agree to notify us immediately of any unauthorized use of your account. Clando reserves the right to suspend or delete any account that violates these Terms.',
       },
       {
         title: '4. Services Offered',
-        text: 'Covoitgo is a matching platform that allows drivers to offer available seats in their vehicle and passengers to book those seats. Covoitgo is not a party to the transport contract between the driver and passengers. The Platform also provides a secure messaging system, a rating and review system, and secure payment processing.',
+        text: 'Clando is a matching platform that allows drivers to offer available seats in their vehicle and passengers to book those seats. Clando is not a party to the transport contract between the driver and passengers. The Platform also provides a secure messaging system, a rating and review system, and secure payment processing.',
       },
       {
         title: '5. Driver Obligations',
@@ -81,11 +81,11 @@ const CONTENT = {
       },
       {
         title: '7. Pricing and Payment',
-        text: 'Trip prices are set freely by drivers within the limits set by the Platform. Covoitgo charges a commission on each transaction. Payments are processed securely. In the event of cancellation, the applicable refund policies are those displayed at the time of booking.',
+        text: 'Trip prices are set freely by drivers within the limits set by the Platform. Clando charges a commission on each transaction. Payments are processed securely. In the event of cancellation, the applicable refund policies are those displayed at the time of booking.',
       },
       {
         title: '8. Liability',
-        text: 'Covoitgo acts as an intermediary and cannot be held liable for damage resulting from user behavior, road accidents, delays, cancellations or any other incident occurring during a trip. Each user is responsible for their own actions on the Platform.',
+        text: 'Clando acts as an intermediary and cannot be held liable for damage resulting from user behavior, road accidents, delays, cancellations or any other incident occurring during a trip. Each user is responsible for their own actions on the Platform.',
       },
       {
         title: '9. Personal Data',
@@ -93,11 +93,11 @@ const CONTENT = {
       },
       {
         title: '10. Changes to Terms',
-        text: 'Covoitgo reserves the right to modify these Terms at any time. Users will be notified of any material changes by email or in-app notification. Continued use of the Platform after notification constitutes acceptance of the new terms.',
+        text: 'Clando reserves the right to modify these Terms at any time. Users will be notified of any material changes by email or in-app notification. Continued use of the Platform after notification constitutes acceptance of the new terms.',
       },
       {
         title: '11. Governing Law',
-        text: 'These Terms are governed by French law. In the event of a dispute, the French courts shall have jurisdiction. Covoitgo encourages users to attempt to resolve any dispute amicably before any legal action.',
+        text: 'These Terms are governed by French law. In the event of a dispute, the French courts shall have jurisdiction. Clando encourages users to attempt to resolve any dispute amicably before any legal action.',
       },
     ],
   },
@@ -154,8 +154,8 @@ export default function Terms() {
                   ? 'Notre équipe juridique est disponible pour répondre à toutes vos questions concernant nos conditions d\'utilisation.'
                   : 'Our legal team is available to answer any questions you may have about our terms of service.'}
               </p>
-              <a href="mailto:legal@covoitgo.fr" style={{ color:'#1A9E8A', fontWeight:700, fontSize:14, textDecoration:'none' }}>
-                legal@covoitgo.fr →
+              <a href="mailto:legal@clando.fr" style={{ color:'#1A9E8A', fontWeight:700, fontSize:14, textDecoration:'none' }}>
+                legal@clando.fr →
               </a>
             </div>
           </div>

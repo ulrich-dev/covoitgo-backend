@@ -1,14 +1,14 @@
 {
-  "name": "covoitgo-backend",
+  "name": "clando-backend",
   "version": "1.0.0",
-  "description": "API backend Covoitgo — Node.js + Express + PostgreSQL",
+  "description": "API backend Clando — Node.js + Express + PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "psql -U postgres -d covoitgo -f db/schema.sql",
-    "db:migrate": "psql -U postgres -d covoitgo -f db/migration_auth.sql",
-    "db:migrate:oauth": "psql -U postgres -d covoitgo -f db/migration_oauth.sql"
+    "db:init": "psql -U postgres -d clando -f db/schema.sql",
+    "db:migrate": "psql -U postgres -d clando -f db/migration_auth.sql",
+    "db:migrate:oauth": "psql -U postgres -d clando -f db/migration_oauth.sql"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

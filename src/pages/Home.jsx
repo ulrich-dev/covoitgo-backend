@@ -297,7 +297,7 @@ export default function Home() {
               {/* Titre */}
               <h1 className="h-hero-title">
                 Covoiturage, Bus, Camion :<br/>
-                <span>Covoitgo</span> vous emmène<br/>
+                <span>Clando</span> vous emmène<br/>
                 où vous voulez.
               </h1>
 
