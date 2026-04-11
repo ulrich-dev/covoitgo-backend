@@ -63,8 +63,12 @@ const { router: alertsRoutes } = require('./routes/alerts')
 const { startScheduler }  = require('./scheduler')
 
 const app    = express()
-const server = http.createServer(app)   // ← HTTP server (requis par Socket.io)
+const server = http.createServer(app)
 const PORT   = process.env.PORT || 5000
+
+// ⚠️ CRITIQUE — Railway (et Vercel) sont derrière un proxy HTTPS.
+// Sans ça, Express voit les requêtes comme HTTP et refuse les cookies secure.
+app.set('trust proxy', 1)
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -92,28 +96,32 @@ app.use(cors({
 }))
 
 // ── Sessions ──────────────────────────────────────────────────
-const SESSION_DURATION = 3 * 60 * 60 * 1000 // 3 heures en ms
+const SESSION_DURATION = 3 * 60 * 60 * 1000 // 3 heures
 
-app.use(session({
+const sessionConfig = {
   store: new pgSession({
     pool,
     tableName:            'session',
-    createTableIfMissing: true,       // crée la table si elle n'existe pas
-    pruneSessionInterval: 60 * 60,    // nettoyer les sessions expirées toutes les heures
-    ttl:                  3 * 60 * 60 // TTL en secondes (3h) dans PostgreSQL
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 60,
+    ttl:                  3 * 60 * 60,  // 3h en secondes
   }),
   secret:            process.env.SESSION_SECRET || 'dev_secret_changez_en_prod',
-  resave:            true,            // re-sauvegarder à chaque requête (renouvelle le TTL)
+  resave:            true,
   saveUninitialized: false,
-  rolling:           true,            // renouveler le cookie à chaque requête
-  name: 'cvg.sid',
+  rolling:           true,
+  name:              'cvg.sid',
   cookie: {
     maxAge:   SESSION_DURATION,
     httpOnly: true,
+    // 'secure: true' + 'sameSite: none' obligatoire pour cross-domain (Vercel ↔ Railway)
+    // 'trust proxy 1' ci-dessus permet à Express de savoir qu'il est derrière HTTPS
     secure:   process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
-}))
+}
+
+app.use(session(sessionConfig))
 
 // ── Passport ─────────────────────────────────────────────────
 app.use(passport.initialize())
@@ -158,27 +166,7 @@ app.use((err, req, res, next) => {
 })
 
 // ── Socket.io ─────────────────────────────────────────────────
-// Doit être initialisé APRÈS la configuration de session
-initSocket(server, session({
-  store: new pgSession({
-    pool,
-    tableName:            'session',
-    createTableIfMissing: true,
-    pruneSessionInterval: 60 * 60,
-    ttl:                  3 * 60 * 60,
-  }),
-  secret:            process.env.SESSION_SECRET || 'dev_secret_changez_en_prod',
-  resave:            true,
-  saveUninitialized: false,
-  rolling:           true,
-  name: 'cvg.sid',
-  cookie: {
-    maxAge:   SESSION_DURATION,
-    httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  },
-}))
+initSocket(server, session(sessionConfig))
 
 // ── Démarrage ─────────────────────────────────────────────────
 async function start() {

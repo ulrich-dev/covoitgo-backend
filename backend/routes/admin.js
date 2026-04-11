@@ -5,26 +5,30 @@ const { sendAccountBlockedEmail, sendAccountReactivatedEmail } = require('../uti
 
 const router = express.Router()
 
-// ── /me doit être AVANT requireAdmin (pour vérifier si on est admin) ──
+// ── Route publique (vérifier si on est admin) ─────────────────
+// DOIT rester hors du middleware requireAdmin
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await queryOne(
       'SELECT id, email, first_name, last_name, is_admin FROM users WHERE id = $1',
       [req.session.userId]
     )
+    if (!user) return res.status(401).json({ success: false, message: 'Non connecté.' })
     res.json({ success: true, user })
   } catch (err) {
     res.status(500).json({ success: false, message: 'Erreur serveur.' })
   }
 })
 
-// Toutes les autres routes admin nécessitent d'être admin
-router.use(requireAuth, requireAdmin)
+// ── Middleware admin sur un sous-routeur séparé ───────────────
+// Toutes les routes suivantes sont protégées par requireAdmin
+const adminRouter = express.Router()
+adminRouter.use(requireAuth, requireAdmin)
 
 // ══════════════════════════════════════════════
 //  GET /api/admin/stats — Dashboard chiffres clés
 // ══════════════════════════════════════════════
-router.get('/stats', async (req, res) => {
+adminRouter.get('/stats', async (req, res) => {
   try {
     const [users, trips, bookings, messages, revenue, newUsers, newTrips] = await Promise.all([
 
@@ -150,7 +154,7 @@ router.get('/stats', async (req, res) => {
 // ══════════════════════════════════════════════
 //  GET /api/admin/users — Liste utilisateurs
 // ══════════════════════════════════════════════
-router.get('/users', async (req, res) => {
+adminRouter.get('/users', async (req, res) => {
   try {
     const { search = '', page = 1, limit = 20, status } = req.query
     const offset = (parseInt(page) - 1) * parseInt(limit)
@@ -202,7 +206,7 @@ router.get('/users', async (req, res) => {
 // ══════════════════════════════════════════════
 //  PATCH /api/admin/users/:id — Modifier un user
 // ══════════════════════════════════════════════
-router.patch('/users/:id', async (req, res) => {
+adminRouter.patch('/users/:id', async (req, res) => {
   try {
     const { is_active, is_admin, role } = req.body
     const { id } = req.params
@@ -243,7 +247,7 @@ router.patch('/users/:id', async (req, res) => {
 // ══════════════════════════════════════════════
 //  DELETE /api/admin/users/:id — Supprimer
 // ══════════════════════════════════════════════
-router.delete('/users/:id', async (req, res) => {
+adminRouter.delete('/users/:id', async (req, res) => {
   try {
     const admin = await queryOne('SELECT id FROM users WHERE id = $1 AND is_admin = true', [req.params.id])
     if (admin) return res.status(400).json({ success: false, message: 'Impossible de supprimer un administrateur.' })
@@ -259,7 +263,7 @@ router.delete('/users/:id', async (req, res) => {
 // ══════════════════════════════════════════════
 //  GET /api/admin/trips — Liste trajets
 // ══════════════════════════════════════════════
-router.get('/trips', async (req, res) => {
+adminRouter.get('/trips', async (req, res) => {
   try {
     const { search = '', page = 1, limit = 20, status } = req.query
     const offset = (parseInt(page) - 1) * parseInt(limit)
@@ -306,7 +310,7 @@ router.get('/trips', async (req, res) => {
 // ══════════════════════════════════════════════
 //  PATCH /api/admin/trips/:id/status
 // ══════════════════════════════════════════════
-router.patch('/trips/:id/status', async (req, res) => {
+adminRouter.patch('/trips/:id/status', async (req, res) => {
   try {
     const { status } = req.body
     const valid = ['active', 'cancelled', 'completed', 'full']
@@ -327,7 +331,7 @@ router.patch('/trips/:id/status', async (req, res) => {
 // ══════════════════════════════════════════════
 //  DELETE /api/admin/trips/:id
 // ══════════════════════════════════════════════
-router.delete('/trips/:id', async (req, res) => {
+adminRouter.delete('/trips/:id', async (req, res) => {
   try {
     await query('DELETE FROM trips WHERE id = $1', [req.params.id])
     res.json({ success: true })
@@ -340,7 +344,7 @@ router.delete('/trips/:id', async (req, res) => {
 // ══════════════════════════════════════════════
 //  GET /api/admin/bookings — Liste réservations
 // ══════════════════════════════════════════════
-router.get('/bookings', async (req, res) => {
+adminRouter.get('/bookings', async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query
     const offset = (parseInt(page) - 1) * parseInt(limit)
@@ -389,7 +393,7 @@ router.get('/bookings', async (req, res) => {
 //  PATCH /api/admin/users/:id/docs
 //  Vérifier ou rejeter les documents d'un conducteur
 // ══════════════════════════════════════════════
-router.patch('/users/:id/docs', async (req, res) => {
+adminRouter.patch('/users/:id/docs', async (req, res) => {
   try {
     const { docs_status } = req.body
     if (!['verified', 'rejected', 'pending'].includes(docs_status))
@@ -408,4 +412,5 @@ router.patch('/users/:id/docs', async (req, res) => {
   }
 })
 
+router.use(adminRouter)
 module.exports = router
