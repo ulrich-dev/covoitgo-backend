@@ -15,21 +15,45 @@ const SENDER = process.env.SMTP_FROM
   : `${APP_NAME} <onboarding@resend.dev>`
 
 // ── Fonction d'envoi unifiée ──────────────────────────────────
-// Utilise Resend SDK en prod, Mailtrap en dev
 async function sendMail({ to, subject, html }) {
+  console.log(`📧  Tentative envoi → ${to}`)
+  console.log(`    RESEND_API_KEY: ${process.env.RESEND_API_KEY ? '✅ définie' : '❌ manquante'}`)
+  console.log(`    SMTP_HOST: ${process.env.SMTP_HOST || '❌ non défini'}`)
+
   if (process.env.RESEND_API_KEY) {
-    // ── Resend SDK (production) ───────────────
+    // ── Resend SDK ────────────────────────────
+    console.log(`    → Envoi via Resend SDK depuis ${SENDER}`)
     const { Resend } = require('resend')
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from:    SENDER,
       to:      [to],
       subject,
       html,
     })
-    if (error) throw new Error(`Resend error: ${error.message}`)
+    if (error) {
+      console.error(`    ❌ Resend error:`, error)
+      throw new Error(`Resend error: ${JSON.stringify(error)}`)
+    }
+    console.log(`    ✅ Resend OK — id: ${data?.id}`)
+  } else if (process.env.SMTP_HOST) {
+    // ── SMTP (Gmail, Brevo, etc.) ─────────────
+    console.log(`    → Envoi via SMTP ${process.env.SMTP_HOST}`)
+    const nodemailer = require('nodemailer')
+    const transporter = nodemailer.createTransport({
+      host:   process.env.SMTP_HOST,
+      port:   parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+    await transporter.sendMail({ from: SENDER, to, subject, html })
+    console.log(`    ✅ SMTP OK`)
   } else {
-    // ── Nodemailer Mailtrap (développement) ───
+    // ── Mailtrap (développement) ──────────────
+    console.log(`    → Envoi via Mailtrap (dev)`)
     const nodemailer = require('nodemailer')
     const transporter = nodemailer.createTransport({
       host: process.env.MAILTRAP_HOST || 'sandbox.smtp.mailtrap.io',
@@ -40,6 +64,7 @@ async function sendMail({ to, subject, html }) {
       },
     })
     await transporter.sendMail({ from: SENDER, to, subject, html })
+    console.log(`    ✅ Mailtrap OK`)
   }
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-
-import { API_URL , authFetch } from '../utils/api'
+import { useLang } from '../context/LangContext'
+import { API_URL, authFetch } from '../utils/api'
 
 export default function ResetPassword() {
   const [params]  = useSearchParams()
@@ -20,7 +20,7 @@ export default function ResetPassword() {
   // Vérif du token au chargement
   useEffect(() => {
     if (!token) { setTokenStatus('invalid'); return }
-    fetch(`${API_URL}/api/auth/check-reset-token?token=${token}`)
+    authFetch(`${API_URL}/api/auth/check-reset-token?token=${token}`)
       .then(r => r.json())
       .then(data => {
         if (data.valid) { setTokenStatus('valid'); setFirstName(data.firstName || '') }
