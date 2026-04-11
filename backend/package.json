@@ -1,7 +1,7 @@
 {
   "name": "covoitgo-backend",
   "version": "1.0.0",
-  "description": "API backend Covoitgo — Node.js + Express + PostgreSQL",
+  "description": "API backend Covoitgo \u2014 Node.js + Express + PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -26,7 +26,8 @@
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.11.3",
     "socket.io": "^4.8.3",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"

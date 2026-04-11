@@ -4,6 +4,7 @@ const crypto    = require('crypto')
 const { body, validationResult } = require('express-validator')
 const { query, queryOne } = require('../db')
 const { requireAuth }     = require('../middleware/auth')
+const { generateToken }   = require('../middleware/auth')
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email')
 
 const router = express.Router()
@@ -160,7 +161,6 @@ router.post('/login',
         req.session.userEmail = user.email
         req.session.userRole  = user.role
         req.session.save(() => {
-          // Enregistrer la connexion (non bloquant)
           query(
             `INSERT INTO connection_logs (user_id, ip_address, user_agent, method)
              VALUES ($1, $2, $3, 'email')`,
@@ -169,14 +169,18 @@ router.post('/login',
              req.headers['user-agent'] || '']
           ).catch(() => {})
 
+          const token = generateToken(user)
+
           res.json({
             success:true, message:'Connexion réussie !',
+            token,   // ← JWT pour le frontend cross-domain
             user: { id:user.id, email:user.email, firstName:user.first_name, lastName:user.last_name,
               name:`${user.first_name} ${user.last_name}`, avatar:user.first_name[0].toUpperCase(),
               avatarUrl:user.avatar_url||null,
               avatarColor:user.avatar_color, role:user.role,
               language: user.language || 'en',
-              rating:parseFloat(user.avg_rating)||0, reviewCount:user.review_count }
+              rating:parseFloat(user.avg_rating)||0, reviewCount:user.review_count,
+              is_admin: user.is_admin || false }
           })
         })
       })
@@ -267,19 +271,25 @@ router.get('/me', requireAuth, async (req, res) => {
        FROM users WHERE id=$1 AND is_active=true`,
       [req.session.userId]
     )
-    if (!user) { req.session.destroy(()=>{}); return res.status(401).json({ success:false, message:'Session expirée.' }) }
+    if (!user) return res.status(401).json({ success:false, message:'Session expirée.' })
 
-    res.json({ success:true, user: {
-      id:user.id, email:user.email, firstName:user.first_name, lastName:user.last_name,
-      name:`${user.first_name} ${user.last_name}`, phone:user.phone,
-      avatar:user.first_name[0].toUpperCase(), avatarColor:user.avatar_color,
-      avatarUrl:user.avatar_url||null,
-      language: user.language || 'en',
-      role:user.role, bio:user.bio,
-      rating:parseFloat(user.avg_rating)||0, reviewCount:user.review_count,
-      emailVerified:user.email_verified, memberSince:user.created_at,
-      is_admin: user.is_admin || false,
-    }})
+    // Renouveler le token JWT à chaque appel /me
+    const freshToken = generateToken(user)
+
+    res.json({ success:true,
+      token: freshToken,  // ← token frais pour le frontend
+      user: {
+        id:user.id, email:user.email, firstName:user.first_name, lastName:user.last_name,
+        name:`${user.first_name} ${user.last_name}`, phone:user.phone,
+        avatar:user.first_name[0].toUpperCase(), avatarColor:user.avatar_color,
+        avatarUrl:user.avatar_url||null,
+        language: user.language || 'en',
+        role:user.role, bio:user.bio,
+        rating:parseFloat(user.avg_rating)||0, reviewCount:user.review_count,
+        emailVerified:user.email_verified, memberSince:user.created_at,
+        is_admin: user.is_admin || false,
+      }
+    })
   } catch (error) {
     res.status(500).json({ success:false, message:'Erreur serveur.' })
   }
