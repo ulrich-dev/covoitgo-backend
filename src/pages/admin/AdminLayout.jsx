@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { API_URL } from '../../utils/api'
+import { API_URL, authFetch } from '../../utils/api'
 
 const NAV = [
   { path: '/admin',          icon: '📊', label: 'Dashboard'     },
@@ -20,7 +20,7 @@ export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/me`, { credentials: 'include' })
+    authFetch(`${API_URL}/api/admin/me`, {})
       .then(r => r.json())
       .then(d => { if (d.success && d.user?.is_admin) setIsAdmin(true); else setIsAdmin(false) })
       .catch(() => setIsAdmin(false))
