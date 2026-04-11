@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LangContext'
-import { API_URL as API } from '../../utils/api'
+import { API_URL as API, authFetch } from '../../utils/api'
 
 // ── Formater temps relatif ────────────────────────────────────
 const relTime = (iso) => {
@@ -46,14 +46,14 @@ export default function Navbar() {
     const fetchAll = async () => {
       try {
         // Messages non lus
-        const resUnread = await fetch(`${API}/api/messages/unread/count`, { credentials: 'include' })
+        const resUnread = await authFetch(`${API}/api/messages/unread/count`, { })
         const dataUnread = await resUnread.json()
         if (dataUnread.success) setUnread(dataUnread.count)
       } catch {}
 
       try {
         // Notifications complètes (réservations + messages)
-        const resNotifs = await fetch(`${API}/api/notifications`, { credentials: 'include' })
+        const resNotifs = await authFetch(`${API}/api/notifications`, { })
         const dataNotifs = await resNotifs.json()
         if (dataNotifs.success) {
           setNotifs(dataNotifs.notifications)

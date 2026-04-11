@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
 
-import { API_URL } from '../utils/api'
+import { API_URL , authFetch } from '../utils/api'
 
 export default function VerifyEmail() {
   const [params] = useSearchParams()
@@ -20,7 +20,7 @@ export default function VerifyEmail() {
 
     const verify = async () => {
       try {
-        const res  = await fetch(`${API_URL}/api/auth/verify-email?token=${token}`, { credentials: 'include' })
+        const res  = await authFetch(`${API_URL}/api/auth/verify-email?token=${token}`, { credentials: 'include' })
         const data = await res.json()
 
         if (data.success) {
@@ -42,7 +42,7 @@ export default function VerifyEmail() {
 
   const handleResend = async (email) => {
     try {
-      await fetch(`${API_URL}/api/auth/resend-verification`, {
+      await authFetch(`${API_URL}/api/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

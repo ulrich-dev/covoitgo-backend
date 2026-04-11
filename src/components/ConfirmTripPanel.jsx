@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 export default function ConfirmTripPanel({ bookingId, isDriver, driverConfirmed, passengerConfirmed, onUpdated }) {
   const [loading,    setLoading]    = useState(false)
@@ -14,7 +14,7 @@ export default function ConfirmTripPanel({ bookingId, isDriver, driverConfirmed,
   const confirm = async () => {
     setLoading(true); setError(''); setMessage('')
     try {
-      const res  = await fetch(`${API_URL}/api/confirm/${bookingId}`, {
+      const res  = await authFetch(`${API_URL}/api/confirm/${bookingId}`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -31,7 +31,7 @@ export default function ConfirmTripPanel({ bookingId, isDriver, driverConfirmed,
     if (!reason.trim()) { setError('Veuillez expliquer le motif du litige.'); return }
     setLoading(true); setError('')
     try {
-      const res  = await fetch(`${API_URL}/api/confirm/${bookingId}/dispute`, {
+      const res  = await authFetch(`${API_URL}/api/confirm/${bookingId}/dispute`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),

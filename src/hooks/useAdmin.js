@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { API_URL } from '../utils/api'
+import { API_URL , authFetch } from '../utils/api'
 
 export function useAdmin() {
   const [loading, setLoading] = useState(false)
@@ -9,7 +9,7 @@ export function useAdmin() {
     setLoading(true)
     setError('')
     try {
-      const res  = await fetch(`${API_URL}${endpoint}`, {
+      const res  = await authFetch(`${API_URL}${endpoint}`, {
         ...options,
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...options.headers },

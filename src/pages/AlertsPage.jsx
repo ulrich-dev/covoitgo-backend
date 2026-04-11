@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 import CityAutocomplete from '../components/CityAutocomplete'
 
 const CITIES = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Garoua', 'Maroua', 'Ngaoundéré', 'Bertoua', 'Kumba', 'Limbe']
@@ -36,8 +36,8 @@ export default function AlertsPage() {
     setLoading(true)
     try {
       const [rA, rF] = await Promise.all([
-        fetch(`${API_URL}/api/alerts`, { credentials: 'include' }).then(r => r.json()),
-        fetch(`${API_URL}/api/alerts/favorites`, { credentials: 'include' }).then(r => r.json()),
+        authFetch(`${API_URL}/api/alerts`, { }).then(r => r.json()),
+        authFetch(`${API_URL}/api/alerts/favorites`, { }).then(r => r.json()),
       ])
       if (rA.success) setAlerts(rA.alerts)
       if (rF.success) setFavorites(rF.favorites)
@@ -56,7 +56,7 @@ export default function AlertsPage() {
     if (!form.originCity || !form.destinationCity) return flash('Sélectionnez départ et destination.', true)
     setSaving(true)
     try {
-      const res  = await fetch(`${API_URL}/api/alerts`, {
+      const res  = await authFetch(`${API_URL}/api/alerts`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -84,7 +84,7 @@ export default function AlertsPage() {
   // ── Toggle alerte actif/inactif ───────────────────────────────
   const toggleAlert = async (id, isActive) => {
     try {
-      const res  = await fetch(`${API_URL}/api/alerts/${id}`, {
+      const res  = await authFetch(`${API_URL}/api/alerts/${id}`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive }),
@@ -97,7 +97,7 @@ export default function AlertsPage() {
   // ── Supprimer une alerte ──────────────────────────────────────
   const deleteAlert = async (id) => {
     try {
-      await fetch(`${API_URL}/api/alerts/${id}`, { method: 'DELETE', credentials: 'include' })
+      await authFetch(`${API_URL}/api/alerts/${id}`, { method: 'DELETE' })
       setAlerts(prev => prev.filter(a => a.id !== id))
       flash('Alerte supprimée.')
     } catch {}
@@ -109,7 +109,7 @@ export default function AlertsPage() {
     if (!favForm.originCity || !favForm.destinationCity) return flash('Sélectionnez départ et destination.', true)
     setSaving(true)
     try {
-      const res  = await fetch(`${API_URL}/api/alerts/favorites`, {
+      const res  = await authFetch(`${API_URL}/api/alerts/favorites`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ originCity: favForm.originCity, destinationCity: favForm.destinationCity }),
@@ -132,7 +132,7 @@ export default function AlertsPage() {
   // ── Toggle notif favori ───────────────────────────────────────
   const toggleFavNotify = async (id, notify) => {
     try {
-      const res  = await fetch(`${API_URL}/api/alerts/favorites/${id}`, {
+      const res  = await authFetch(`${API_URL}/api/alerts/favorites/${id}`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notify }),
@@ -145,7 +145,7 @@ export default function AlertsPage() {
   // ── Supprimer un favori ───────────────────────────────────────
   const deleteFavorite = async (id) => {
     try {
-      await fetch(`${API_URL}/api/alerts/favorites/${id}`, { method: 'DELETE', credentials: 'include' })
+      await authFetch(`${API_URL}/api/alerts/favorites/${id}`, { method: 'DELETE' })
       setFavorites(prev => prev.filter(f => f.id !== id))
       flash('Favori supprimé.')
     } catch {}

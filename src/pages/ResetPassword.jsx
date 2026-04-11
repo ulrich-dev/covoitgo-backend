@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 
-import { API_URL } from '../utils/api'
+import { API_URL , authFetch } from '../utils/api'
 
 export default function ResetPassword() {
   const [params]  = useSearchParams()
@@ -49,7 +49,7 @@ export default function ResetPassword() {
 
     setStatus('loading')
     try {
-      const res  = await fetch(`${API_URL}/api/auth/reset-password`, {
+      const res  = await authFetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),

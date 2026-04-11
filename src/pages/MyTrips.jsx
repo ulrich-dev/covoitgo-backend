@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 import { fmtFCFA } from '../data/cameroun'
 import ReviewModal from '../components/ReviewModal'
 import ConfirmTripPanel from '../components/ConfirmTripPanel'
@@ -53,7 +53,7 @@ function EditTripModal({ trip, onClose, onSaved }) {
   const handleSave = async () => {
     setSaving(true); setError('')
     try {
-      const res  = await fetch(`${API_URL}/api/trips/${trip.id}`, {
+      const res  = await authFetch(`${API_URL}/api/trips/${trip.id}`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,7 +134,7 @@ function TripCard({ item, onEdit, onReload }) {
   const handleBookingStatus = async (bookingId, status) => {
     setUpdatingId(bookingId)
     try {
-      const res  = await fetch(`${API_URL}/api/trips/bookings/${bookingId}/status`, {
+      const res  = await authFetch(`${API_URL}/api/trips/bookings/${bookingId}/status`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -148,7 +148,7 @@ function TripCard({ item, onEdit, onReload }) {
   const cancelTrip = async () => {
     if (!confirm('Annuler ce trajet ? Les passagers seront prévenus.')) return
     try {
-      await fetch(`${API_URL}/api/trips/${trip.id}`, {
+      await authFetch(`${API_URL}/api/trips/${trip.id}`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'cancelled' }),
@@ -338,7 +338,7 @@ function BookingCard({ booking, onStatusChange, onReview, onReload }) {
   const handleStatus = async (status) => {
     setUpdating(true)
     try {
-      const res  = await fetch(`${API_URL}/api/trips/bookings/${booking.bookingId}/status`, {
+      const res  = await authFetch(`${API_URL}/api/trips/bookings/${booking.bookingId}/status`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -516,7 +516,7 @@ export default function MyTrips() {
 
   const load = () => {
     setLoading(true)
-    fetch(`${API_URL}/api/trips/my-bookings`, { credentials: 'include' })
+    authFetch(`${API_URL}/api/trips/my-bookings`, { })
       .then(r => r.json())
       .then(data => {
         if (data.success) {

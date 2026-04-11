@@ -1,4 +1,4 @@
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
@@ -83,7 +83,7 @@ export default function Register() {
           try {
             const fd = new FormData()
             fd.append('avatar', avatarFile)
-            await fetch(`${API_URL}/api/auth/avatar`, {
+            await authFetch(`${API_URL}/api/auth/avatar`, {
               method: 'POST', credentials: 'include', body: fd,
             })
           } catch {} // non bloquant

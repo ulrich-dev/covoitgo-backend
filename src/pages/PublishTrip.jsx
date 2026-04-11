@@ -1,4 +1,4 @@
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
@@ -43,7 +43,7 @@ export default function PublishTrip() {
 
   useEffect(() => {
     if (!user) return
-    fetch(`${API_URL}/api/freemium/status`, { credentials: 'include' })
+    authFetch(`${API_URL}/api/freemium/status`, { })
       .then(r => r.json())
       .then(d => { if (d.success) setFreemium(d.freemium) })
       .catch(() => {})
@@ -55,7 +55,7 @@ export default function PublishTrip() {
 
   useEffect(() => {
     if (!user) return
-    fetch(`${API_URL}/api/driver/profile`, { credentials: 'include' })
+    authFetch(`${API_URL}/api/driver/profile`, { })
       .then(r => r.json())
       .then(d => {
         if (d.success) {
@@ -148,7 +148,7 @@ export default function PublishTrip() {
         return found ? found.label : id
       })
 
-      const res  = await fetch(`${API_URL}/api/trips`, {
+      const res  = await authFetch(`${API_URL}/api/trips`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -662,7 +662,7 @@ export default function PublishTrip() {
                     onComplete={() => {
                       setDriverReady(true)
                       // Rafraîchir les données conducteur
-                      fetch(`${API_URL}/api/driver/profile`, { credentials: 'include' })
+                      authFetch(`${API_URL}/api/driver/profile`, { })
                         .then(r => r.json())
                         .then(d => { if (d.success) setDriverProfile(d.profile) })
                     }}

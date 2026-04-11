@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 // ── Marques populaires au Cameroun ───────────────────────────
 const CAR_BRANDS = [
@@ -154,7 +154,7 @@ export default function DriverDocs({
     setSaving(true)
     try {
       // 1. Sauvegarder les infos véhicule
-      const vRes = await fetch(`${API_URL}/api/driver/vehicle`, {
+      const vRes = await authFetch(`${API_URL}/api/driver/vehicle`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(vehicle),
@@ -169,7 +169,7 @@ export default function DriverDocs({
         if (files.license_doc)  fd.append('license_doc',  files.license_doc)
         if (files.identity_doc) fd.append('identity_doc', files.identity_doc)
 
-        const dRes = await fetch(`${API_URL}/api/driver/documents`, {
+        const dRes = await authFetch(`${API_URL}/api/driver/documents`, {
           method: 'POST', credentials: 'include', body: fd,
         })
         const dData = await dRes.json()

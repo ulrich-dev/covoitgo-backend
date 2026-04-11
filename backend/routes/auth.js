@@ -237,7 +237,10 @@ router.post('/oauth-session', async (req, res) => {
         )
         if (!user) return res.status(401).json({ success: false, message: 'Utilisateur introuvable.' })
 
-        res.json({ success: true, user: {
+        // Générer un JWT pour le cross-domain
+        const token = generateToken(user)
+
+        res.json({ success: true, token, user: {
           id: user.id, email: user.email,
           firstName: user.first_name, lastName: user.last_name,
           name: `${user.first_name} ${user.last_name}`,

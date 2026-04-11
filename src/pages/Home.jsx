@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
-import { API_URL } from '../utils/api'
+import { API_URL, saveToken } from '../utils/api'
 import CityAutocomplete from '../components/CityAutocomplete'
 import { POPULAR_ROUTES_CM, fmtFCFA } from '../data/cameroun'
 
@@ -39,6 +39,7 @@ export default function Home() {
         .then(r => r.json())
         .then(data => {
           if (data.success) {
+            if (data.token) saveToken(data.token)
             setUser(data.user)
             window.history.replaceState({}, '', '/')
           }

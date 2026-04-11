@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 import { fmtFCFA } from '../data/cameroun'
 
 const PAYMENT_METHODS = [
@@ -54,7 +54,7 @@ export default function PaymentWall({ balanceDue: balanceProp }) {
   const [error,       setError]      = useState('')
 
   useEffect(() => {
-    fetch(`${API_URL}/api/freemium/status`, { credentials: 'include' })
+    authFetch(`${API_URL}/api/freemium/status`, { })
       .then(r => r.json())
       .then(d => { if (d.success) setFreemium(d.freemium) })
   }, [])
@@ -68,7 +68,7 @@ export default function PaymentWall({ balanceDue: balanceProp }) {
 
     setSubmitting(true); setError('')
     try {
-      const res  = await fetch(`${API_URL}/api/freemium/payment-request`, {
+      const res  = await authFetch(`${API_URL}/api/freemium/payment-request`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ method: selectedMethod, phone, reference }),

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useSocket } from '../hooks/useSocket'
-import { API_URL as API } from '../utils/api'
+import { API_URL as API, authFetch } from '../utils/api'
 
 const fmtTime = (iso) => {
   if (!iso) return ''
@@ -58,7 +58,7 @@ export default function Messages() {
   // ── Charger la liste des conversations ────────────────────
   const loadConvos = useCallback(async () => {
     try {
-      const res  = await fetch(`${API}/api/messages`, { credentials: 'include' })
+      const res  = await authFetch(`${API}/api/messages`, { })
       const data = await res.json()
       if (data.success) setConvos(data.conversations)
       else if (res.status === 401) navigate('/login')
@@ -159,7 +159,7 @@ export default function Messages() {
     setLoadingMsg(true)
     setOtherTyping(false)
     try {
-      const res  = await fetch(`${API}/api/messages/${bookingId}`, { credentials: 'include' })
+      const res  = await authFetch(`${API}/api/messages/${bookingId}`, { })
       const data = await res.json()
       if (data.success) {
         setConvoData(data)

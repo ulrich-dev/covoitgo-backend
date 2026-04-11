@@ -7,7 +7,7 @@ import TripMap from '../components/TripMap'
 import ContactModal from '../components/ContactModal'
 import { fmtFCFA } from '../data/cameroun'
 
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 const fmt = (iso) => {
   if (!iso) return '--:--'
@@ -64,7 +64,7 @@ function NoResultBlock({ from, to, user }) {
         ? { originCity: favFrom, destinationCity: favTo }
         : { originCity: favFrom, destinationCity: favTo }
 
-      const res  = await fetch(endpoint, {
+      const res  = await authFetch(endpoint, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -285,7 +285,7 @@ export default function SearchTrips() {
       if (f) q.set('from', f); if (t) q.set('to', t)
       if (d) q.set('date', d); if (p) q.set('passengers', p)
       q.set('sort', sort || sortBy)
-      const res  = await fetch(`${API_URL}/api/trips/search?${q}`, { credentials:'include' })
+      const res  = await authFetch(`${API_URL}/api/trips/search?${q}`, { })
       const data = await res.json()
       if (data.success) setTrips(data.trips)
       else setError(data.message)
@@ -326,7 +326,7 @@ export default function SearchTrips() {
     if (!user) { navigate('/login'); return }
     setBooking(b => ({ ...b, [trip.id]:'loading' }))
     try {
-      const res  = await fetch(`${API_URL}/api/trips/${trip.id}/book`, {
+      const res  = await authFetch(`${API_URL}/api/trips/${trip.id}/book`, {
         method:'POST', credentials:'include',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ seatsBooked:1 }),

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 /**
  * AvatarUpload — composant complet
@@ -149,7 +149,7 @@ export default function AvatarUpload({ user, size = 88, onUpload, editable = tru
       const fd = new FormData()
       fd.append('avatar', blob, 'avatar.jpg')
 
-      const res  = await fetch(`${API_URL}/api/auth/avatar`, {
+      const res  = await authFetch(`${API_URL}/api/auth/avatar`, {
         method: 'POST', credentials: 'include', body: fd,
       })
       const data = await res.json()
@@ -170,9 +170,8 @@ export default function AvatarUpload({ user, size = 88, onUpload, editable = tru
   // ── Supprimer la photo ─────────────────────────────────────
   const handleDelete = async () => {
     try {
-      const res  = await fetch(`${API_URL}/api/auth/avatar`, {
-        method: 'DELETE', credentials: 'include',
-      })
+      const res  = await authFetch(`${API_URL}/api/auth/avatar`, {
+        method: 'DELETE' })
       const data = await res.json()
       if (data.success) { setEditor(false); onUpload?.(null) }
     } catch { setError('Erreur serveur.') }

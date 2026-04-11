@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 export default function ContactModal({ trip, onClose }) {
   const navigate   = useNavigate()
@@ -28,7 +28,7 @@ export default function ContactModal({ trip, onClose }) {
     setSending(true)
     setError('')
     try {
-      const res  = await fetch(`${API_URL}/api/trips/${trip.id}/contact`, {
+      const res  = await authFetch(`${API_URL}/api/trips/${trip.id}/contact`, {
         method:      'POST',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json' },

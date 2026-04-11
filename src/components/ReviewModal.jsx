@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 export default function ReviewModal({ bookingId, driverName, from, to, onClose, onSubmit }) {
   const [rating,  setRating]  = useState(0)
@@ -14,7 +14,7 @@ export default function ReviewModal({ bookingId, driverName, from, to, onClose, 
     if (!rating) { setError('Sélectionnez une note.'); return }
     setSending(true)
     try {
-      const res  = await fetch(`${API_URL}/api/reviews`, {
+      const res  = await authFetch(`${API_URL}/api/reviews`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId, rating, comment }),

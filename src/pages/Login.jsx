@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 
-import { API_URL } from '../utils/api'
+import { API_URL, saveToken , authFetch } from '../utils/api'
 
 // ── Icône Google ──────────────────────────────
 const GoogleIcon = () => (
@@ -56,7 +56,7 @@ export default function Login() {
           .then(r => r.json())
           .then(data => {
             if (data.success) {
-              // Nettoyer l'URL
+              if (data.token) saveToken(data.token)
               window.history.replaceState({}, '', '/')
               navigate('/')
             } else {
@@ -116,7 +116,7 @@ export default function Login() {
 
   const handleResend = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/resend-verification`, {
+      await authFetch(`${API_URL}/api/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 
 const CATEGORIES = [
   { key: 'booking',    icon: '🎫', label: 'Problème de réservation',  desc: 'Annulation, remboursement, litige' },
@@ -73,7 +73,7 @@ export default function Contact() {
 
     setSending(true); setError('')
     try {
-      const res  = await fetch(`${API_URL}/api/contact`, {
+      const res  = await authFetch(`${API_URL}/api/contact`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

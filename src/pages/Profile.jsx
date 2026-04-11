@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
-import { API_URL } from '../utils/api'
+import { API_URL, authFetch } from '../utils/api'
 import { fmtFCFA } from '../data/cameroun'
 import ReviewModal from '../components/ReviewModal'
 import AvatarUpload from '../components/AvatarUpload'
@@ -58,7 +58,7 @@ export default function Profile() {
 
   const checkReview = async (bookingId) => {
     try {
-      const res  = await fetch(`${API_URL}/api/reviews/can-review/${bookingId}`, { credentials: 'include' })
+      const res  = await authFetch(`${API_URL}/api/reviews/can-review/${bookingId}`, { })
       const data = await res.json()
       if (data.success && data.canReview) {
         setReviewModal({ bookingId, driverName: data.driverName, from: data.from, to: data.to })
@@ -69,7 +69,7 @@ export default function Profile() {
   const loadReviews = async () => {
     if (!user?.id) return
     try {
-      const res  = await fetch(`${API_URL}/api/reviews/driver/${user.id}`)
+      const res  = await authFetch(`${API_URL}/api/reviews/driver/${user.id}`)
       const data = await res.json()
       if (data.success) { setReviews(data.reviews); setReviewStats(data.stats) }
     } catch {}
@@ -77,7 +77,7 @@ export default function Profile() {
 
   const loadWallet = async () => {
     try {
-      const res  = await fetch(`${API_URL}/api/trips/my-bookings`, { credentials: 'include' })
+      const res  = await authFetch(`${API_URL}/api/trips/my-bookings`, { })
       const data = await res.json()
       if (!data.success) return
 
@@ -130,7 +130,7 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true); setError(''); setSuccess('')
     try {
-      const res  = await fetch(`${API_URL}/api/auth/profile`, {
+      const res  = await authFetch(`${API_URL}/api/auth/profile`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
