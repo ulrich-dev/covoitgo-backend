@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang } from '../context/LangContext'
+import { useAuth } from '../context/AuthContext'
+import { API_URL } from '../utils/api'
 import CityAutocomplete from '../components/CityAutocomplete'
 import { POPULAR_ROUTES_CM, fmtFCFA } from '../data/cameroun'
 
@@ -14,12 +16,36 @@ const REVIEWS_BG = [
 
 export default function Home() {
   const { t, lang } = useLang()
+  const { fetchMe, setUser } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const [from, setFrom]       = useState('')
   const [to,   setTo]         = useState('')
   const [date, setDate]       = useState('')
   const [pax,  setPax]        = useState(1)
-  const [mode, setMode]       = useState('car') // car | bus | train
+  const [mode, setMode]       = useState('car')
+
+  // ── Gérer le retour OAuth cross-domain (?oauth=success&sid=xxx) ──
+  useEffect(() => {
+    const oauthStatus = params.get('oauth')
+    const sid         = params.get('sid')
+    if (oauthStatus === 'success' && sid) {
+      fetch(`${API_URL}/api/auth/oauth-session`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sid }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setUser(data.user)
+            window.history.replaceState({}, '', '/')
+          }
+        })
+        .catch(() => {})
+    }
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()

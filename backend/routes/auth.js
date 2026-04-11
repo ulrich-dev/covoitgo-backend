@@ -198,6 +198,66 @@ router.post('/logout', (req, res) => {
 })
 
 // ══════════════════════════════════════════════
+//  POST /api/auth/oauth-session
+//  Valider une session OAuth cross-domain (Vercel ↔ Railway)
+//  Le frontend envoie le sid reçu dans l'URL après OAuth
+// ══════════════════════════════════════════════
+router.post('/oauth-session', async (req, res) => {
+  try {
+    const { sid } = req.body
+    if (!sid) return res.status(400).json({ success: false, message: 'sid manquant.' })
+
+    // Charger la session depuis la base
+    const sessionRow = await queryOne(
+      `SELECT sess FROM session WHERE sid = $1 AND expire > NOW()`,
+      [sid]
+    )
+    if (!sessionRow) return res.status(401).json({ success: false, message: 'Session expirée ou invalide.' })
+
+    const sessionData = sessionRow.sess
+    const userId = sessionData.userId
+
+    if (!userId) return res.status(401).json({ success: false, message: 'Session invalide.' })
+
+    // Créer une nouvelle session pour ce navigateur
+    req.session.regenerate((err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Erreur session.' })
+      req.session.userId    = userId
+      req.session.userEmail = sessionData.userEmail
+      req.session.userRole  = sessionData.userRole
+      req.session.save(async () => {
+        const user = await queryOne(
+          `SELECT id,email,first_name,last_name,phone,role,bio,avatar_color,avatar_url,language,avg_rating,review_count,created_at,email_verified,is_admin
+           FROM users WHERE id=$1 AND is_active=true`,
+          [userId]
+        )
+        if (!user) return res.status(401).json({ success: false, message: 'Utilisateur introuvable.' })
+
+        res.json({ success: true, user: {
+          id: user.id, email: user.email,
+          firstName: user.first_name, lastName: user.last_name,
+          name: `${user.first_name} ${user.last_name}`,
+          phone: user.phone,
+          avatar: user.first_name[0].toUpperCase(),
+          avatarColor: user.avatar_color,
+          avatarUrl: user.avatar_url || null,
+          language: user.language || 'en',
+          role: user.role, bio: user.bio,
+          rating: parseFloat(user.avg_rating) || 0,
+          reviewCount: user.review_count,
+          emailVerified: user.email_verified,
+          memberSince: user.created_at,
+          is_admin: user.is_admin || false,
+        }})
+      })
+    })
+  } catch (error) {
+    console.error('oauth-session:', error)
+    res.status(500).json({ success: false, message: 'Erreur serveur.' })
+  }
+})
+
+// ══════════════════════════════════════════════
 //  GET /api/auth/me
 // ══════════════════════════════════════════════
 router.get('/me', requireAuth, async (req, res) => {
@@ -476,9 +536,12 @@ router.get('/google/callback',
       req.session.userId    = user.id
       req.session.userEmail = user.email
       req.session.userRole  = user.role
-      req.session.save(() => {
+      req.session.save((saveErr) => {
+        if (saveErr) return res.redirect(`${CLIENT_URL}/login?error=session`)
         query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'google')`, [user.id]).catch(()=>{})
-        res.redirect(`${CLIENT_URL}/?oauth=success`)
+        // Passer le sessionId dans l'URL pour que le frontend puisse s'authentifier cross-domain
+        const sid = req.session.id
+        res.redirect(`${CLIENT_URL}/?oauth=success&sid=${sid}`)
       })
     })
   }
@@ -503,10 +566,12 @@ router.get('/facebook/callback',
       req.session.userId    = user.id
       req.session.userEmail = user.email
       req.session.userRole  = user.role
-      req.session.save(() => {
-          query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'facebook')`, [user.id]).catch(()=>{})
-          res.redirect(`${CLIENT_URL}/?oauth=success`)
-        })
+      req.session.save((saveErr) => {
+        if (saveErr) return res.redirect(`${CLIENT_URL}/login?error=session`)
+        query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'facebook')`, [user.id]).catch(()=>{})
+        const sid = req.session.id
+        res.redirect(`${CLIENT_URL}/?oauth=success&sid=${sid}`)
+      })
     })
   }
 )

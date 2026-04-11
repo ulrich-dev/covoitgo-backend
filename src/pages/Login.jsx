@@ -38,17 +38,39 @@ export default function Login() {
   const [needsVerif, setNeedsVerif] = useState(false)
   const [resendSent, setResendSent] = useState(false)
 
-  // ── Gérer le retour OAuth (?oauth=success ou ?error=xxx) ──
+  // ── Gérer le retour OAuth (?oauth=success&sid=xxx) ──
   useEffect(() => {
     const oauthStatus = params.get('oauth')
     const oauthError  = params.get('error')
+    const sid         = params.get('sid')
 
     if (oauthStatus === 'success') {
-      // Le backend a créé la session — on recharge l'utilisateur
-      fetchMe().then(user => {
-        if (user) navigate('/')
-        else setError(lang === 'fr' ? 'Connexion OAuth échouée.' : 'OAuth login failed.')
-      })
+      if (sid) {
+        // Cross-domain : valider la session via le sid
+        fetch(`${API_URL}/api/auth/oauth-session`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sid }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              // Nettoyer l'URL
+              window.history.replaceState({}, '', '/')
+              navigate('/')
+            } else {
+              setError(lang === 'fr' ? 'Connexion OAuth échouée.' : 'OAuth login failed.')
+            }
+          })
+          .catch(() => setError(lang === 'fr' ? 'Erreur serveur.' : 'Server error.'))
+      } else {
+        // Même domaine : fetchMe classique
+        fetchMe().then(user => {
+          if (user) navigate('/')
+          else setError(lang === 'fr' ? 'Connexion OAuth échouée.' : 'OAuth login failed.')
+        })
+      }
       return
     }
 
