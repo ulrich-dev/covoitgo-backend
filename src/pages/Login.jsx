@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 
-import { API_URL, IS_LOCALHOST } from '../utils/api'
+import { API_URL } from '../utils/api'
 
 // ── Icône Google ──────────────────────────────
 const GoogleIcon = () => (
@@ -86,17 +86,7 @@ export default function Login() {
   }
 
   // ── Connexion OAuth ───────────────────────────
-  // Google/Facebook OAuth nécessite un domaine enregistré dans leur console.
-  // Les IPs locales (192.168.x.x) ne sont pas acceptées → OAuth désactivé sur mobile LAN.
   const handleOAuth = (provider) => {
-    if (!IS_LOCALHOST) {
-      setError(
-        lang === 'fr'
-          ? `La connexion ${provider === 'google' ? 'Google' : 'Facebook'} n'est pas disponible depuis un appareil externe en réseau local. Utilisez votre email et mot de passe.`
-          : `${provider === 'google' ? 'Google' : 'Facebook'} login is not available from external devices on a local network. Use email and password.`
-      )
-      return
-    }
     setOauthLoading(provider)
     setError('')
     window.location.href = `${API_URL}/api/auth/${provider}`
@@ -203,25 +193,12 @@ export default function Login() {
             )}
 
             {/* ── Boutons OAuth ── */}
-
-            {/* Avertissement mobile LAN */}
-            {!IS_LOCALHOST && (
-              <div style={{ background:'#FFF9E6', border:'1.5px solid rgba(245,158,11,.3)', borderRadius:10, padding:'10px 14px', marginBottom:10, fontSize:12, color:'#92400E', fontWeight:600, display:'flex', gap:8, alignItems:'flex-start' }}>
-                <span style={{ flexShrink:0, fontSize:15 }}>⚠️</span>
-                <span>
-                  {lang === 'fr'
-                    ? 'Google/Facebook OAuth disponible uniquement depuis l\'ordinateur de développement. Utilisez votre email et mot de passe.'
-                    : 'Google/Facebook OAuth only available from the development computer. Use email and password.'}
-                </span>
-              </div>
-            )}
-
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:4 }}>
 
               {/* Google */}
               <button
                 className="social-btn google"
-                disabled={!!oauthLoading || !IS_LOCALHOST}
+                disabled={!!oauthLoading}
                 onClick={() => handleOAuth('google')}>
                 {oauthLoading === 'google' ? (
                   <span style={{ width:16, height:16, borderRadius:'50%', border:'2px solid rgba(66,133,244,.3)', borderTopColor:'#4285f4', display:'inline-block', animation:'spin .8s linear infinite' }} />
@@ -232,7 +209,7 @@ export default function Login() {
               {/* Facebook */}
               <button
                 className="social-btn facebook"
-                disabled={!!oauthLoading || !IS_LOCALHOST}
+                disabled={!!oauthLoading}
                 onClick={() => handleOAuth('facebook')}>
                 {oauthLoading === 'facebook' ? (
                   <span style={{ width:16, height:16, borderRadius:'50%', border:'2px solid rgba(24,119,242,.3)', borderTopColor:'#1877f2', display:'inline-block', animation:'spin .8s linear infinite' }} />
