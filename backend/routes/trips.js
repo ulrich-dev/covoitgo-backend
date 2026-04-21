@@ -108,8 +108,16 @@ router.get('/search', async (req, res) => {
       }))
     })
   } catch (error) {
-    console.error('search trips:', error)
-    res.status(500).json({ success: false, message: 'Erreur serveur.' })
+    console.error('━━━━━━━━━━ SEARCH ERROR ━━━━━━━━━━')
+    console.error('Message:', error.message)
+    console.error('Code:', error.code)
+    console.error('Stack:', error.stack)
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    res.status(500).json({
+      success: false,
+      message: error.message,   // ← l'erreur visible dans le frontend
+      code: error.code,
+    })
   }
 })
 
