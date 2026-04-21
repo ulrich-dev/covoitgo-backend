@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useSocket } from '../hooks/useSocket'
+import { useWebRTC } from '../hooks/useWebRTC'
 import { API_URL as API, authFetch } from '../utils/api'
+import VoiceCall from '../components/VoiceCall'
 
 const fmtTime = (iso) => {
   if (!iso) return ''
@@ -49,7 +51,14 @@ export default function Messages() {
   const typingTimer = useRef(null)
 
   // ── Socket.io ─────────────────────────────────────────────
-  const { on, emit, joinConv, leaveConv } = useSocket(user)
+  const { on, emit, joinConv, leaveConv, socket } = useSocket(user)
+
+  // ── Appel vocal WebRTC ─────────────────────────────────────
+  const { callState, startCall, acceptCall, endCall, toggleMute } = useWebRTC({
+    socket,
+    bookingId: selected,
+    user,
+  })
   const selectedRef = useRef(null)  // ref pour accéder à selected dans les callbacks
   selectedRef.current = selected
 
@@ -126,6 +135,26 @@ export default function Messages() {
           : prev
         )
       }
+    })
+
+    // Résumé d'appel dans le chat
+    on('call:log', ({ bookingId: bId, callLog }) => {
+      if (selectedRef.current !== bId) return
+      setConvoData(prev => {
+        if (!prev) return prev
+        const callMsg = {
+          id:        `call_${callLog.id}`,
+          type:      'call',
+          status:    callLog.status,
+          duration:  callLog.duration,
+          startedAt: callLog.startedAt,
+          callerName: callLog.callerName,
+          callerId:   callLog.callerId,
+          at:         callLog.startedAt,
+        }
+        if (prev.messages.some(m => m.id === callMsg.id)) return prev
+        return { ...prev, messages: [...prev.messages, callMsg] }
+      })
     })
 
     // Erreur socket
@@ -559,6 +588,25 @@ export default function Messages() {
                   </div>
                 </div>
 
+                {/* Bouton appel vocal */}
+                {convoData.conversation.status === 'confirmed' && (
+                  <button
+                    onClick={() => startCall(convoData.conversation.other.name)}
+                    title={lang === 'fr' ? 'Appel vocal' : 'Voice call'}
+                    style={{
+                      width:40, height:40, borderRadius:'50%', border:'none',
+                      background:'#E8F7F4', color:'#1A9E8A', fontSize:18,
+                      cursor:'pointer', display:'flex', alignItems:'center',
+                      justifyContent:'center', flexShrink:0,
+                      transition:'background .15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background='#D1F0EA'}
+                    onMouseLeave={e => e.currentTarget.style.background='#E8F7F4'}
+                  >
+                    📞
+                  </button>
+                )}
+
                 {/* Role badge */}
                 <div style={{ background: convoData.conversation.myRole === 'driver' ? '#E8F7F4' : '#F3EEFF', color: convoData.conversation.myRole === 'driver' ? '#1A9E8A' : '#7C3AED', borderRadius:20, padding:'4px 12px', fontSize:11, fontWeight:800, flexShrink:0 }}>
                   {convoData.conversation.myRole === 'driver'
@@ -566,6 +614,17 @@ export default function Messages() {
                     : (lang === 'fr' ? '🧳 Passager' : '🧳 Passenger')}
                 </div>
               </div>
+
+              {/* Overlay appel vocal */}
+              {callState.status !== 'idle' && (
+                <VoiceCall
+                  callState={callState}
+                  onAccept={acceptCall}
+                  onEnd={endCall}
+                  onMute={toggleMute}
+                  avatarColor={convoData.conversation.other.color}
+                />
+              )}
 
               {/* Messages */}
               <div className="msg-body" ref={chatBodyRef}>
@@ -601,6 +660,51 @@ export default function Messages() {
                   // Same sender grouping
                   const isSameSender = prev && prev.isFromMe === msg.isFromMe && msgDate === prevDate
                   const showAvatar = !isSameSender
+
+                  // ── Bulle d'appel vocal ──────────────────────────────
+                  if (msg.type === 'call') {
+                    const isMissed   = msg.status === 'missed' || msg.status === 'rejected'
+                    const isAnswered = msg.status === 'answered'
+                    const fmtDur = (s) => {
+                      if (!s) return ''
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      return `${m}:${sec.toString().padStart(2, '0')}`
+                    }
+                    acc.push(
+                      <div key={msg.id} style={{ display:'flex', justifyContent:'center', margin:'12px 0' }}>
+                        <div style={{
+                          background: isMissed ? '#FEF2F2' : '#E8F7F4',
+                          border: `1px solid ${isMissed ? 'rgba(239,68,68,.2)' : 'rgba(26,158,138,.2)'}`,
+                          borderRadius: 20, padding: '8px 18px',
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          fontSize: 13, color: isMissed ? '#DC2626' : '#0f766e',
+                          fontWeight: 600,
+                        }}>
+                          <span style={{ fontSize: 16 }}>
+                            {isMissed ? '📵' : '📞'}
+                          </span>
+                          <span>
+                            {isMissed
+                              ? (lang === 'fr' ? 'Appel manqué' : 'Missed call')
+                              : (lang === 'fr' ? 'Appel vocal' : 'Voice call')}
+                            {isAnswered && msg.duration > 0 && (
+                              <span style={{ marginLeft: 6, opacity: .7 }}>
+                                · {fmtDur(msg.duration)}
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ opacity: .5, fontSize: 11, fontWeight: 400 }}>
+                            {msg.startedAt ? new Date(msg.startedAt).toLocaleTimeString(
+                              lang === 'fr' ? 'fr-FR' : 'en-GB',
+                              { hour: '2-digit', minute: '2-digit' }
+                            ) : ''}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                    return acc
+                  }
 
                   acc.push(
                     <div key={msg.id} className={`bubble-row ${msg.isFromMe ? 'me' : 'them'}${msg.temp ? ' bubble-temp' : ''}`}

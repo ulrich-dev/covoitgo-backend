@@ -118,7 +118,7 @@ router.get('/search', async (req, res) => {
       message: error.message,   // ← l'erreur visible dans le frontend
       code: error.code,
     })
-  }
+    }
 })
 
 // ══════════════════════════════════════════════

@@ -1,49 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0D7A6A"/>
       <stop offset="100%" stop-color="#22C6AD"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    <linearGradient id="car" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#e0f7f4" stop-opacity="1"/>
     </linearGradient>
   </defs>
 
   <!-- Fond arrondi -->
-  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
-  <rect width="192" height="96" rx="42" fill="url(#shine)"/>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
 
-  <!-- Corps voiture -->
-  <rect x="24" y="104" width="144" height="52" rx="12" fill="#fff" opacity="0.95"/>
+  <!-- Carrosserie voiture -->
+  <rect x="96" y="240" width="320" height="110" rx="18" fill="url(#car)"/>
 
-  <!-- Toit -->
-  <path d="M54 104 Q60 64 78 62 L114 62 Q132 62 138 104 Z" fill="#fff" opacity="0.95"/>
+  <!-- Toit arrondi -->
+  <path d="M160 240 Q170 170 210 160 L302 160 Q342 170 352 240 Z" fill="url(#car)"/>
 
-  <!-- Pare-brise -->
-  <path d="M60 102 Q63 70 78 68 L114 68 Q129 68 132 102 Z" fill="#BAE6FD" opacity="0.8"/>
-
-  <!-- Fenêtres -->
-  <rect x="66" y="72" width="24" height="22" rx="5" fill="#7DD3FC" opacity="0.9"/>
-  <rect x="102" y="72" width="24" height="22" rx="5" fill="#7DD3FC" opacity="0.9"/>
+  <!-- Vitres -->
+  <rect x="178" y="175" width="65" height="58" rx="8" fill="#1A9E8A" opacity="0.7"/>
+  <rect x="252" y="175" width="85" height="58" rx="8" fill="#1A9E8A" opacity="0.7"/>
 
   <!-- Roues -->
-  <circle cx="57" cy="152" r="18" fill="#1F2937"/>
-  <circle cx="57" cy="152" r="9" fill="#374151"/>
-  <circle cx="57" cy="152" r="4.5" fill="#9CA3AF"/>
-
-  <circle cx="135" cy="152" r="18" fill="#1F2937"/>
-  <circle cx="135" cy="152" r="9" fill="#374151"/>
-  <circle cx="135" cy="152" r="4.5" fill="#9CA3AF"/>
+  <circle cx="168" cy="352" r="44" fill="#1A4A44"/>
+  <circle cx="168" cy="352" r="24" fill="#e0f7f4"/>
+  <circle cx="168" cy="352" r="10" fill="#1A9E8A"/>
+  <circle cx="344" cy="352" r="44" fill="#1A4A44"/>
+  <circle cx="344" cy="352" r="24" fill="#e0f7f4"/>
+  <circle cx="344" cy="352" r="10" fill="#1A9E8A"/>
 
   <!-- Phares -->
-  <rect x="162" y="114" width="14" height="16" rx="5" fill="#FDE68A" opacity="0.95"/>
-  <rect x="16"  y="114" width="10" height="16" rx="5" fill="#FCA5A5" opacity="0.9"/>
+  <rect x="96" y="272" width="36" height="20" rx="6" fill="#FFE066"/>
+  <rect x="380" y="272" width="36" height="20" rx="6" fill="#FF6B6B"/>
 
-  <!-- Stripe déco -->
-  <rect x="24" y="134" width="144" height="4" fill="rgba(26,158,138,0.2)" rx="2"/>
-
-  <!-- Passagers -->
-  <circle cx="88"  cy="80" r="8" fill="rgba(26,158,138,0.5)"/>
-  <circle cx="114" cy="80" r="8" fill="rgba(26,158,138,0.4)"/>
+  <!-- Texte Clando -->
+  <text x="256" y="472" font-family="Arial, sans-serif" font-size="64" font-weight="900"
+    fill="white" text-anchor="middle" opacity="0.95" letter-spacing="-2">Clando</text>
 </svg>

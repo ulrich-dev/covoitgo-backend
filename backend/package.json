@@ -1,7 +1,7 @@
 {
   "name": "clando-backend",
   "version": "1.0.0",
-  "description": "API backend Clando — Node.js + Express + PostgreSQL",
+  "description": "API backend Clando \u2014 Node.js + Express + PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -28,7 +28,8 @@
     "socket.io": "^4.8.3",
     "uuid": "^9.0.0",
     "jsonwebtoken": "^9.0.2",
-    "resend": "^3.2.0"
+    "resend": "^3.2.0",
+    "agora-token": "^2.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"

@@ -1,16 +1,15 @@
-// ── URL de l'API ─────────────────────────────────────────────
-const isNative = typeof window !== 'undefined' && window.Capacitor?.isNative
+// URL du backend Railway — forcée en dur pour Android
+const RAILWAY_URL = 'https://covoitgo-backend-production2.up.railway.app'
 
-const isLocalhost =
-  typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  )
+const isNative = typeof window !== 'undefined'
+  && (window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform === 'android')
 
-const PRODUCTION_URL = import.meta.env.VITE_API_URL || ''
+const isLocalhost = typeof window !== 'undefined'
+  && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
-export const API_URL = isLocalhost ? '' : PRODUCTION_URL
-export const IS_LOCALHOST = isLocalhost
+// Sur Android ou en prod : toujours Railway
+// En dev localhost : proxy Vite
+export const API_URL = (isNative || !isLocalhost) ? RAILWAY_URL : ''
 
 // ── Gestion du JWT ───────────────────────────────────────────
 const TOKEN_KEY = 'cvg_token'
@@ -27,16 +26,13 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
 }
 
-// ── Fetch authentifié — envoie le JWT automatiquement ────────
+// ── Fetch authentifié ─────────────────────────────────────────
 export function authFetch(url, options = {}) {
   const token = getToken()
   const headers = {
     ...options.headers,
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   }
-  return fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers,
-  })
+  const credentials = isNative ? 'omit' : 'include'
+  return fetch(url, { ...options, credentials, headers })
 }

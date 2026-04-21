@@ -56,6 +56,9 @@ function initSocket(server, sessionMiddleware) {
   io.on('connection', (socket) => {
     console.log(`🔌 Socket connecté : userId=${socket.userId}`)
 
+    // Rejoindre la salle personnelle (pour notifications d'appel)
+    socket.join(`user_${socket.userId}`)
+
     // ── Rejoindre une salle de conversation ──────────────────
     // Le client envoie { bookingId } pour s'abonner aux messages
     socket.on('join_conversation', async ({ bookingId }) => {
@@ -153,7 +156,6 @@ function initSocket(server, sessionMiddleware) {
            WHERE booking_id = $1 AND sender_id != $2 AND is_read = false`,
           [bookingId, socket.userId]
         )
-        // Notifier l'autre que ses messages ont été lus
         socket.to(`booking:${bookingId}`).emit('messages_read', {
           bookingId,
           readBy: socket.userId,
@@ -161,6 +163,128 @@ function initSocket(server, sessionMiddleware) {
       } catch (err) {
         console.error('mark_read:', err.message)
       }
+    })
+
+    // ════════════════════════════════════════════════════════
+    //  SIGNALING WebRTC — Appel vocal P2P
+    // ════════════════════════════════════════════════════════
+
+    // Initier un appel
+    socket.on('call:start', async ({ bookingId, callerName }) => {
+      try {
+        const booking = await queryOne(
+          `SELECT b.passenger_id, t.driver_id
+           FROM bookings b JOIN trips t ON t.id = b.trip_id
+           WHERE b.id = $1 AND b.status = 'confirmed'`,
+          [bookingId]
+        )
+        if (!booking) return
+        if (booking.driver_id !== socket.userId && booking.passenger_id !== socket.userId) return
+
+        const calleeId = booking.driver_id === socket.userId
+          ? booking.passenger_id
+          : booking.driver_id
+
+        // Créer le log d'appel (statut: missed par défaut)
+        const callLog = await queryOne(
+          `INSERT INTO call_logs (booking_id, caller_id, callee_id, status)
+           VALUES ($1, $2, $3, 'missed') RETURNING id`,
+          [bookingId, socket.userId, calleeId]
+        )
+        socket.callLogId = callLog?.id
+        socket.callBookingId = bookingId
+        socket.callCalleeId = calleeId
+
+        // Notifier l'autre participant
+        socket.to(`booking:${bookingId}`).emit('call:incoming', {
+          bookingId,
+          callerName,
+          callerId: socket.userId,
+          callLogId: callLog?.id,
+        })
+        console.log(`📞 Appel initié : booking=${bookingId} log=${callLog?.id}`)
+      } catch (err) {
+        console.error('call:start:', err.message)
+      }
+    })
+
+    // Transmettre l'offre SDP (appelant → appelé)
+    socket.on('call:offer', ({ bookingId, offer }) => {
+      socket.to(`booking:${bookingId}`).emit('call:offer', {
+        offer,
+        callerId: socket.userId,
+      })
+    })
+
+    // Transmettre la réponse SDP (appelé → appelant)
+    socket.on('call:answer', ({ bookingId, answer }) => {
+      socket.to(`booking:${bookingId}`).emit('call:answer', { answer })
+    })
+
+    // Transmettre les ICE candidates
+    socket.on('call:ice', ({ bookingId, candidate }) => {
+      socket.to(`booking:${bookingId}`).emit('call:ice', { candidate })
+    })
+
+    // Accepter l'appel → mettre à jour le log
+    socket.on('call:accept', async ({ bookingId, callLogId }) => {
+      socket.to(`booking:${bookingId}`).emit('call:accepted', {
+        acceptedBy: socket.userId,
+      })
+      // Marquer comme answered + timestamp début
+      if (callLogId) {
+        await query(
+          `UPDATE call_logs SET status='answered', started_at=NOW() WHERE id=$1`,
+          [callLogId]
+        ).catch(() => {})
+      }
+    })
+
+    // Refuser ou terminer l'appel → calculer la durée
+    socket.on('call:end', async ({ bookingId, reason, callLogId, duration }) => {
+      socket.to(`booking:${bookingId}`).emit('call:ended', {
+        reason: reason || 'ended',
+        by: socket.userId,
+      })
+
+      // Mettre à jour le log
+      const logId = callLogId || socket.callLogId
+      if (logId) {
+        const status = reason === 'rejected' ? 'rejected'
+                     : reason === 'failed'   ? 'failed'
+                     : duration > 0          ? 'answered'
+                     : 'missed'
+        await query(
+          `UPDATE call_logs
+           SET status=$1, ended_at=NOW(), duration=$2
+           WHERE id=$3`,
+          [status, duration || 0, logId]
+        ).catch(() => {})
+
+        // Diffuser le log aux deux participants pour affichage dans le chat
+        const callLog = await queryOne(
+          `SELECT cl.*, u.first_name AS caller_name
+           FROM call_logs cl JOIN users u ON u.id = cl.caller_id
+           WHERE cl.id = $1`,
+          [logId]
+        ).catch(() => null)
+
+        if (callLog) {
+          io.to(`booking:${bookingId}`).emit('call:log', {
+            bookingId,
+            callLog: {
+              id:        callLog.id,
+              status:    callLog.status,
+              duration:  callLog.duration,
+              startedAt: callLog.started_at,
+              callerName: callLog.caller_name,
+              callerId:  callLog.caller_id,
+            },
+          })
+        }
+      }
+
+      console.log(`📵 Appel terminé : booking=${bookingId} durée=${duration}s`)
     })
 
     socket.on('disconnect', () => {

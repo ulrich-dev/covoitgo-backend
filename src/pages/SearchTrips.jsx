@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
-import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
-import CityAutocomplete from '../components/CityAutocomplete'
-import TripMap from '../components/TripMap'
-import ContactModal from '../components/ContactModal'
-import { fmtFCFA } from '../data/cameroun'
-
+import { useMobile } from '../hooks/useMobile'
 import { API_URL, authFetch } from '../utils/api'
+import { POPULAR_ROUTES,MAJOR_CITIES } from '../data/cameroun'
+import CityPicker from '../components/CityPicker'
 
 const fmt = (iso) => {
   if (!iso) return '--:--'
@@ -16,8 +13,13 @@ const fmt = (iso) => {
 }
 const fmtDate = (iso) => {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' })
+  return new Date(iso).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})
 }
+const fmtFull = (iso) => {
+  if (!iso) return "Aujourd'hui"
+  return new Date(iso).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
+}
+const fmtFCFA = (n) => n ? `${Number(n).toLocaleString('fr-FR')} FCFA` : ''
 const stars = (r) => { const f=Math.round(r||0); return '★'.repeat(f)+'☆'.repeat(5-f) }
 
 const PREF_FILTERS = [
@@ -29,233 +31,13 @@ const PREF_FILTERS = [
   { id:'Chargeur USB', icon:'🔌' },
 ]
 
-// ── Bloc "Aucun résultat" avec proposition favori/alerte ──────
-function NoResultBlock({ from, to, user }) {
-  const navigate = useNavigate()
-  const { t, lang } = useLang()
 
-  const [favFrom,    setFavFrom]    = useState(from  || '')
-  const [favTo,      setFavTo]      = useState(to    || '')
-  const [step,       setStep]       = useState('idle')   // idle | form | success
-  const [actionType, setActionType] = useState(null)     // 'favorite' | 'alert'
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState('')
-
-  const handleAction = (type) => {
-    if (!user) { navigate('/login'); return }
-    setActionType(type)
-    setStep('form')
-    setError('')
-  }
-
-  const handleSubmit = async () => {
-    if (!favFrom.trim() || !favTo.trim()) {
-      setError('Veuillez sélectionner un départ et une destination.')
-      return
-    }
-    setSaving(true)
-    setError('')
-    try {
-      const endpoint = actionType === 'favorite'
-        ? `${API_URL}/api/alerts/favorites`
-        : `${API_URL}/api/alerts`
-
-      const body = actionType === 'favorite'
-        ? { originCity: favFrom, destinationCity: favTo }
-        : { originCity: favFrom, destinationCity: favTo }
-
-      const res  = await authFetch(endpoint, {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setStep('success')
-      } else {
-        setError(data.message || 'Une erreur est survenue.')
-      }
-    } catch {
-      setError('Impossible de contacter le serveur.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div style={{ background:'#fff', border:'1.5px solid rgba(0,0,0,.07)', borderRadius:16, overflow:'hidden' }}>
-
-      {/* En-tête */}
-      <div style={{ background:'linear-gradient(135deg,#F7F5F2,#fff)', padding:'40px 32px 28px', textAlign:'center', borderBottom:'1px solid rgba(0,0,0,.06)' }}>
-        <div style={{ fontSize:52, marginBottom:14 }}>🔍</div>
-        <h2 style={{ fontSize:19, fontWeight:900, color:'#1A1A1A', margin:'0 0 10px' }}>
-          Aucun trajet trouvé
-        </h2>
-        <p style={{ color:'#94A3B8', fontSize:14, lineHeight:1.7, margin:0 }}>
-          {from && to
-            ? <>Pas de trajet disponible entre <strong style={{ color:'#1A1A1A' }}>{from}</strong> et <strong style={{ color:'#1A1A1A' }}>{to}</strong> pour le moment.</>
-            : <>Aucun trajet ne correspond à votre recherche.</>
-          }
-        </p>
-      </div>
-
-      {/* Contenu selon l'étape */}
-      {step === 'idle' && (
-        <div style={{ padding:'28px 32px' }}>
-
-          {/* Suggestions */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:24 }}>
-
-            {/* Favori */}
-            <button onClick={() => handleAction('favorite')}
-              style={{ background:'#FFF8E7', border:'1.5px solid #F59E0B', borderRadius:14, padding:'20px 18px', cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all .18s' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#FEF3C7'}
-              onMouseLeave={e => e.currentTarget.style.background = '#FFF8E7'}>
-              <div style={{ fontSize:28, marginBottom:10 }}>⭐</div>
-              <div style={{ fontSize:14, fontWeight:800, color:'#92400E', marginBottom:6 }}>
-                Sauvegarder en favori
-              </div>
-              <div style={{ fontSize:12, color:'#B45309', lineHeight:1.6 }}>
-                Soyez notifié dès qu'un conducteur publie ce trajet
-              </div>
-            </button>
-
-            {/* Alerte */}
-            <button onClick={() => handleAction('alert')}
-              style={{ background:'#F0FDF4', border:'1.5px solid #1A9E8A', borderRadius:14, padding:'20px 18px', cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all .18s' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#DCFCE7'}
-              onMouseLeave={e => e.currentTarget.style.background = '#F0FDF4'}>
-              <div style={{ fontSize:28, marginBottom:10 }}>🔔</div>
-              <div style={{ fontSize:14, fontWeight:800, color:'#065F46', marginBottom:6 }}>
-                Créer une alerte
-              </div>
-              <div style={{ fontSize:12, color:'#047857', lineHeight:1.6 }}>
-                Avec dates et prix max pour un matching précis
-              </div>
-            </button>
-          </div>
-
-          {/* Séparateur */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
-            <div style={{ flex:1, height:1, background:'rgba(0,0,0,.08)' }}/>
-            <span style={{ fontSize:12, color:'#CBD5E1', fontWeight:600 }}>ou</span>
-            <div style={{ flex:1, height:1, background:'rgba(0,0,0,.08)' }}/>
-          </div>
-
-          {/* Publier un trajet */}
-          <div style={{ textAlign:'center' }}>
-            <p style={{ fontSize:13, color:'#94A3B8', marginBottom:14 }}>
-              Vous êtes conducteur ? Proposez ce trajet vous-même !
-            </p>
-            <Link to="/publish">
-              <button style={{ background:'linear-gradient(135deg,#1A9E8A,#22C6AD)', color:'#fff', border:'none', borderRadius:24, padding:'12px 28px', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'inherit' }}>
-                + Publier un trajet
-              </button>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {step === 'form' && (
-        <div style={{ padding:'28px 32px' }}>
-          <div style={{ marginBottom:20 }}>
-            <div style={{ fontSize:24, marginBottom:8 }}>{actionType === 'favorite' ? '⭐' : '🔔'}</div>
-            <h3 style={{ fontSize:16, fontWeight:800, color:'#1A1A1A', margin:'0 0 4px' }}>
-              {actionType === 'favorite' ? 'Sauvegarder en favori' : 'Créer une alerte'}
-            </h3>
-            <p style={{ fontSize:13, color:'#94A3B8', margin:0 }}>
-              {actionType === 'favorite'
-                ? 'Confirmez votre itinéraire pour être notifié à chaque nouveau trajet.'
-                : 'Définissez votre trajet pour recevoir une alerte dès qu\'un conducteur publie.'}
-            </p>
-          </div>
-
-          {/* Champs départ/arrivée */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
-            <div>
-              <label style={{ fontSize:11, fontWeight:700, color:'#64748B', display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:'.05em' }}>
-                Départ <span style={{ color:'#EF4444' }}>*</span>
-              </label>
-              <CityAutocomplete
-                value={favFrom}
-                onChange={setFavFrom}
-                placeholder="Ville de départ"
-              />
-            </div>
-            <div>
-              <label style={{ fontSize:11, fontWeight:700, color:'#64748B', display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:'.05em' }}>
-                Destination <span style={{ color:'#EF4444' }}>*</span>
-              </label>
-              <CityAutocomplete
-                value={favTo}
-                onChange={setFavTo}
-                placeholder="Ville d'arrivée"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div style={{ background:'#FEF2F2', color:'#DC2626', borderRadius:9, padding:'10px 14px', fontSize:13, fontWeight:600, marginBottom:14, display:'flex', gap:8, alignItems:'center' }}>
-              ⚠️ {error}
-            </div>
-          )}
-
-          <div style={{ display:'flex', gap:10 }}>
-            <button onClick={() => { setStep('idle'); setError('') }}
-              style={{ flex:1, padding:'12px', borderRadius:12, border:'1px solid rgba(0,0,0,.1)', background:'#F8FAFC', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', color:'#555' }}>
-              ← Retour
-            </button>
-            <button onClick={handleSubmit} disabled={saving}
-              style={{ flex:2, padding:'12px', borderRadius:12, border:'none',
-                background: saving ? '#94A3B8' : actionType === 'favorite'
-                  ? 'linear-gradient(135deg,#F59E0B,#FBBF24)'
-                  : 'linear-gradient(135deg,#1A9E8A,#22C6AD)',
-                color:'#fff', fontFamily:'inherit', fontSize:13, fontWeight:800, cursor: saving ? 'not-allowed' : 'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-              {saving
-                ? <><span style={{ width:14, height:14, border:'2px solid rgba(255,255,255,.4)', borderTopColor:'#fff', borderRadius:'50%', display:'inline-block', animation:'spin .7s linear infinite' }}/> Enregistrement…</>
-                : actionType === 'favorite' ? '⭐ Sauvegarder' : '🔔 Créer l\'alerte'
-              }
-              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 'success' && (
-        <div style={{ padding:'40px 32px', textAlign:'center' }}>
-          <div style={{ fontSize:52, marginBottom:16 }}>{actionType === 'favorite' ? '⭐' : '🔔'}</div>
-          <h3 style={{ fontSize:17, fontWeight:900, color:'#1A1A1A', marginBottom:10 }}>
-            {actionType === 'favorite' ? 'Favori enregistré !' : 'Alerte créée !'}
-          </h3>
-          <p style={{ fontSize:14, color:'#6B7280', lineHeight:1.7, marginBottom:24 }}>
-            {actionType === 'favorite'
-              ? <>Vous recevrez un email dès qu'un conducteur publie un trajet <strong>{favFrom} → {favTo}</strong>.</>
-              : <>Nous vous alerterons par email dès qu'un trajet <strong>{favFrom} → {favTo}</strong> sera disponible.</>
-            }
-          </p>
-          <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
-            <button onClick={() => setStep('idle')}
-              style={{ padding:'11px 20px', borderRadius:22, border:'1.5px solid rgba(0,0,0,.1)', background:'#F8FAFC', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', color:'#555' }}>
-              Retour aux résultats
-            </button>
-            <Link to="/alerts">
-              <button style={{ padding:'11px 20px', borderRadius:22, border:'none', background:'linear-gradient(135deg,#1A9E8A,#22C6AD)', color:'#fff', fontFamily:'inherit', fontSize:13, fontWeight:800, cursor:'pointer' }}>
-                Gérer mes alertes →
-              </button>
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function SearchTrips() {
-  const [urlParams]  = useSearchParams()
-  const navigate     = useNavigate()
-  const { user }     = useAuth()
-  const { t, lang }  = useLang()
+  const [urlParams] = useSearchParams()
+  const navigate    = useNavigate()
+  const { user }    = useAuth()
+  const isMobile    = useMobile()
 
   const [from, setFrom] = useState(urlParams.get('from') || '')
   const [to,   setTo]   = useState(urlParams.get('to')   || '')
@@ -271,528 +53,514 @@ export default function SearchTrips() {
   const [sortBy,      setSortBy]      = useState('departure')
   const [timeSlot,    setTimeSlot]    = useState('all')
   const [activePrefs, setActivePrefs] = useState([])
-  const [showFilters, setShowFilters] = useState(false)
+  const [panel,       setPanel]       = useState(null) // null | 'search' | 'filters'
 
   const [selected,    setSelected]    = useState(null)
   const [booking,     setBooking]     = useState({})
   const [bookMsg,     setBookMsg]     = useState('')
-  const [contactTrip, setContactTrip] = useState(null) // trip à contacter → ouvre le modal
 
-  const doSearch = useCallback(async (f, t, d, p, sort) => {
+  const doSearch = useCallback(async (f, t, d, p) => {
     setLoading(true); setError(''); setHasSearched(true); setSelected(null)
     try {
       const q = new URLSearchParams()
-      if (f) q.set('from', f); if (t) q.set('to', t)
-      if (d) q.set('date', d); if (p) q.set('passengers', p)
-      q.set('sort', sort || sortBy)
-      const res  = await authFetch(`${API_URL}/api/trips/search?${q}`, { })
+      if (f) q.set('from', f)
+      if (t) q.set('to',   t)
+      if (d) q.set('date', d)
+      if (p) q.set('passengers', p)
+      const res  = await authFetch(`${API_URL}/api/trips/search?${q}`, {})
       const data = await res.json()
-      if (data.success) setTrips(data.trips)
-      else setError(data.message)
+      if (data.success) setTrips(data.trips || [])
+      else setError(data.message || 'Erreur de recherche.')
     } catch { setError('Impossible de contacter le serveur.') }
-    finally { setLoading(false) }
-  }, [sortBy])
-
-  useEffect(() => {
-    const f=urlParams.get('from'), t=urlParams.get('to')
-    const d=urlParams.get('date'), p=urlParams.get('passengers')||'1'
-    if (f||t) { setFrom(f||''); setTo(t||''); setDate(d||''); setPax(p); doSearch(f,t,d,p,'departure') }
+    finally  { setLoading(false) }
   }, [])
 
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const q = new URLSearchParams()
-    if (from) q.set('from', from); if (to) q.set('to', to)
-    if (date) q.set('date', date); q.set('passengers', pax)
-    navigate(`/search?${q}`)
-    doSearch(from, to, date, pax, sortBy)
-  }
+  useEffect(() => { if (from && to) doSearch(from, to, date, pax) }, [])
 
-  const handleSortChange = (s) => { setSortBy(s); if (hasSearched) doSearch(from,to,date,pax,s) }
-  const togglePref = (id) => setActivePrefs(p => p.includes(id)?p.filter(x=>x!==id):[...p,id])
+  const filtered = trips.filter(t => {
+    if (t.price_per_seat > maxPrice) return false
+    if (activePrefs.length > 0 && !activePrefs.every(p => t.preferences?.includes(p))) return false
+    if (timeSlot !== 'all') {
+      const h = new Date(t.departure_time).getHours()
+      if (timeSlot === 'morning'   && !(h >= 5  && h < 12)) return false
+      if (timeSlot === 'afternoon' && !(h >= 12 && h < 18)) return false
+      if (timeSlot === 'evening'   && h < 18) return false
+    }
+    return true
+  }).sort((a,b) => {
+    if (sortBy === 'price')  return a.price_per_seat - b.price_per_seat
+    if (sortBy === 'rating') return (b.driver_rating||0) - (a.driver_rating||0)
+    return new Date(a.departure_time) - new Date(b.departure_time)
+  })
 
-  const filtered = trips
-    .filter(t => t.price <= maxPrice)
-    .filter(t => {
-      const h = new Date(t.departureAt).getHours()
-      if (timeSlot==='morning')   return h>=5  && h<12
-      if (timeSlot==='afternoon') return h>=12 && h<18
-      if (timeSlot==='evening')   return h>=18
-      return true
-    })
-    .filter(t => activePrefs.every(p => (t.prefs||[]).includes(p)))
-
-  const handleBook = async (trip) => {
+  const handleBook = async (tripId) => {
     if (!user) { navigate('/login'); return }
-    setBooking(b => ({ ...b, [trip.id]:'loading' }))
     try {
-      const res  = await authFetch(`${API_URL}/api/trips/${trip.id}/book`, {
-        method:'POST', credentials:'include',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ seatsBooked:1 }),
+      const res  = await authFetch(`${API_URL}/api/trips/${tripId}/book`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ seats: parseInt(pax) }),
       })
       const data = await res.json()
-      if (data.success) { setBooking(b=>({...b,[trip.id]:'done'})); setBookMsg('✅ Réservation envoyée au conducteur !') }
-      else              { setBooking(b=>({...b,[trip.id]:'error'})); setBookMsg(`❌ ${data.message}`) }
-    } catch { setBooking(b=>({...b,[trip.id]:'error'})); setBookMsg('❌ Erreur de connexion.') }
-    setTimeout(()=>setBookMsg(''), 4000)
+      setBookMsg(data.message || (data.success ? 'Demande envoyée !' : 'Erreur'))
+      if (data.success) setBooking(b => ({ ...b, [tripId]: true }))
+      setTimeout(() => setBookMsg(''), 3000)
+    } catch { setBookMsg('Erreur.'); setTimeout(() => setBookMsg(''), 2000) }
   }
 
-  const filterCount = activePrefs.length + (maxPrice<20000?1:0) + (timeSlot!=='all'?1:0)
+  const nbFilters = (maxPrice < 20000 ? 1 : 0) + (timeSlot !== 'all' ? 1 : 0) + activePrefs.length
 
-  return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes shimmer   { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  // ── MOBILE ──────────────────────────────────────────────────
+  if (isMobile) return (
+    <div style={{ background:'#ECEEF3', minHeight:'100vh', fontFamily:"-apple-system,'SF Pro Display',sans-serif" }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} ::-webkit-scrollbar{display:none}`}</style>
 
-        .page-bg { flex:1; min-height:calc(100vh - 72px); background:#F7F5F2; font-family:'Plus Jakarta Sans',sans-serif; }
-        .sbar { background:#fff; border-bottom:1px solid rgba(0,0,0,.07); padding:12px 0; position:sticky; top:72px; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,.04); }
-        .sbar-inner { max-width:1200px; margin:0 auto; padding:0 20px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-        .spill { display:flex; align-items:center; gap:7px; background:#F7F5F2; border:1.5px solid rgba(0,0,0,.1); border-radius:10px; padding:7px 12px; font-size:13px; font-weight:600; color:#1A1A1A; white-space:nowrap; }
-        .spill input,.spill select { background:none; border:none; outline:none; font:inherit; color:inherit; min-width:80px; }
-        .spill:focus-within { border-color:#1A9E8A; }
+      {bookMsg && (
+        <div style={{ position:'fixed',top:16,left:16,right:16,zIndex:9999,background:'#1A9E8A',color:'#fff',borderRadius:14,padding:'14px 18px',fontWeight:700,fontSize:14,textAlign:'center',boxShadow:'0 8px 24px rgba(0,0,0,.2)' }}>
+          {bookMsg}
+        </div>
+      )}
 
-        .main { max-width:1200px; margin:0 auto; padding:24px 20px 60px; display:grid; grid-template-columns:256px 1fr; gap:22px; align-items:start; }
-        .sidebar { background:#fff; border:1.5px solid rgba(0,0,0,.07); border-radius:16px; padding:20px; position:sticky; top:140px; }
-        .sb-title { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#bbb; margin-bottom:10px; }
-        .sb-divider { height:1px; background:rgba(0,0,0,.07); margin:16px 0; }
-        .tb  { flex:1; padding:7px 4px; font-size:11px; font-weight:700; border-radius:8px; border:1.5px solid rgba(0,0,0,.1); background:#fff; cursor:pointer; transition:all .18s; font-family:inherit; color:#888; text-align:center; }
-        .tb.on { border-color:#1A9E8A; background:#E8F7F4; color:#157A6B; }
-        .pchip { display:flex; align-items:center; gap:5px; padding:6px 10px; border-radius:8px; border:1.5px solid rgba(0,0,0,.1); background:#fff; cursor:pointer; font-size:11px; font-weight:700; color:#888; font-family:inherit; transition:all .18s; }
-        .pchip.on { border-color:#1A9E8A; background:#E8F7F4; color:#157A6B; }
+      {/* Header */}
+      <div style={{ background:'#fff', paddingTop:8 }}>
 
-        .tc { background:#fff; border:1.5px solid rgba(0,0,0,.07); border-radius:16px; padding:18px 20px; margin-bottom:10px; cursor:pointer; transition:all .22s; animation:fadeUp .45s ease both; position:relative; overflow:visible; }
-        .tc::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:transparent; border-radius:3px 0 0 3px; transition:background .22s; }
-        .tc:hover { border-color:rgba(26,158,138,.35); transform:translateY(-2px); box-shadow:0 8px 28px rgba(26,158,138,.1); }
-        .tc:hover::before,.tc.sel::before { background:linear-gradient(to bottom,#1A9E8A,#22C6AD); }
-        .tc.sel { border-color:#1A9E8A; box-shadow:0 0 0 3px rgba(26,158,138,.1); }
-        .tc-grid { display:grid; grid-template-columns:56px 1fr 120px 130px; align-items:center; gap:14px; }
-
-        .dep-time { font-size:21px; font-weight:800; letter-spacing:-.03em; color:#1A1A1A; }
-        .dep-date { font-size:10px; color:#bbb; margin-top:2px; font-weight:600; }
-        .route-viz { display:flex; align-items:center; gap:10px; }
-        .city-name { font-size:13px; font-weight:800; color:#1A1A1A; }
-        .city-addr { font-size:10px; color:#bbb; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px; }
-        .rl { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:50px; }
-        .rt { width:100%; height:2px; background:linear-gradient(90deg,#1A9E8A,rgba(26,158,138,.1)); border-radius:2px; position:relative; }
-        .rd { position:absolute; right:-4px; top:-4px; width:10px; height:10px; border-radius:50%; background:#1A9E8A; border:2px solid #fff; box-shadow:0 1px 4px rgba(26,158,138,.4); }
-        .rm { font-size:10px; color:#bbb; font-weight:600; }
-        .drv-block { display:flex; align-items:center; gap:8px; }
-        .drv-av { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
-        .drv-name { font-size:12px; font-weight:800; color:#1A1A1A; }
-        .drv-stars { font-size:9px; color:#F59E0B; }
-        .drv-ct { font-size:10px; color:#bbb; }
-        .verif { display:inline-flex; align-items:center; gap:2px; background:#E8F7F4; color:#1A9E8A; border-radius:4px; font-size:9px; font-weight:800; padding:2px 5px; margin-top:2px; }
-        .prc-block { text-align:right; }
-        .prc-val { font-size:13px; font-weight:800; color:#1A9E8A; white-space:nowrap; }
-        .prc-lbl { font-size:10px; color:#bbb; }
-        .seats-dots { display:flex; gap:3px; justify-content:flex-end; margin-top:4px; }
-        .sd { width:7px; height:7px; border-radius:50%; }
-        .sd.free { background:#1A9E8A; } .sd.taken { background:#e0ddd8; }
-        .prefs-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,.06); }
-        .ptag { background:#F7F5F2; border:1px solid rgba(0,0,0,.08); border-radius:6px; font-size:10px; font-weight:700; color:#888; padding:3px 8px; }
-
-        .detail { background:#fff; border:1.5px solid #1A9E8A; border-radius:16px; overflow:hidden; animation:slideDown .28s ease both; box-shadow:0 8px 28px rgba(26,158,138,.12); margin-top:-4px; margin-bottom:10px; }
-        .sk { background:linear-gradient(90deg,#f0ede8 25%,#e8e4de 50%,#f0ede8 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
-        .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1c1917; color:#fff; border-radius:12px; padding:12px 22px; font-size:14px; font-weight:700; z-index:9999; animation:fadeUp .3s ease both; box-shadow:0 8px 24px rgba(0,0,0,.25); white-space:nowrap; font-family:inherit; }
-
-        @media(max-width:900px) {
-          .main { grid-template-columns:1fr }
-          .sidebar { position:static; display:none }
-          .sidebar.open { display:block }
-          .filter-btn { display:flex !important }
-          .tc-grid { grid-template-columns:50px 1fr auto }
-          .drv-block { display:none }
-        }
-        @media(max-width:600px) {
-          .main { padding:12px 12px 48px }
-          .sbar-inner { padding:0 12px }
-          .tc-grid { grid-template-columns:1fr }
-          .prc-block { display:flex; align-items:center; gap:10px; justify-content:space-between }
-        }
-      `}</style>
-
-      <div className="page-bg">
-        {bookMsg && <div className="toast">{bookMsg}</div>}
-
-        {/* ══ Barre de recherche sticky ══ */}
-        <div className="sbar">
-          <form className="sbar-inner" onSubmit={handleSearch}>
-
-            <div style={{ position:'relative', zIndex:50, flex:'1 1 130px', minWidth:120 }}>
-              <CityAutocomplete value={from} onChange={setFrom} placeholder="Départ" icon="📍"
-                inputStyle={{ border:'1.5px solid rgba(0,0,0,.1)', borderRadius:10, padding:'7px 32px 7px 32px', fontSize:13, fontWeight:600, background:'#F7F5F2', boxShadow:'none' }} />
+        {/* Retour + résumé cliquable */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px 10px' }}>
+          <button onClick={() => navigate(-1)}
+            style={{ background:'none',border:'none',fontSize:26,cursor:'pointer',color:'#111',padding:'0 4px 0 0',lineHeight:1,fontWeight:300 }}>
+            ‹
+          </button>
+          <button onClick={() => setPanel('search')}
+            style={{ flex:1,background:'#F2F3F7',border:'none',borderRadius:16,padding:'10px 14px',textAlign:'left',cursor:'pointer',fontFamily:'inherit' }}>
+            <div style={{ fontSize:14,fontWeight:700,color:'#111827',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
+              {from && to ? `${from} → ${to}` : 'Où allez-vous ?'}
             </div>
-
-            <span style={{ color:'#ccc', flexShrink:0 }}>→</span>
-
-            <div style={{ position:'relative', zIndex:49, flex:'1 1 130px', minWidth:120 }}>
-              <CityAutocomplete value={to} onChange={setTo} placeholder="Arrivée" icon="🏁"
-                inputStyle={{ border:'1.5px solid rgba(0,0,0,.1)', borderRadius:10, padding:'7px 32px 7px 32px', fontSize:13, fontWeight:600, background:'#F7F5F2', boxShadow:'none' }} />
+            <div style={{ fontSize:12,color:'#6B7280',marginTop:2 }}>
+              {fmtFull(date)} · {pax} adulte{parseInt(pax)>1?'s':''}
             </div>
-
-            <label className="spill">
-              <span>📅</span>
-              <input type="date" value={date} onChange={e=>setDate(e.target.value)} />
-            </label>
-
-            <label className="spill" style={{ minWidth:110 }}>
-              <span>👤</span>
-              <select value={pax} onChange={e=>setPax(e.target.value)}>
-                {[1,2,3,4].map(n=><option key={n} value={n}>{n} passager{n>1?'s':''}</option>)}
-              </select>
-            </label>
-
-            <button type="submit" className="btn-primary" style={{ padding:'9px 18px', fontSize:13, flexShrink:0 }}>
-              {loading?'…':'🔍 Chercher'}
-            </button>
-
-            <Link to="/" style={{ marginLeft:'auto', flexShrink:0 }}>
-              <button type="button" style={{ background:'none', border:'none', cursor:'pointer', fontSize:13, fontWeight:700, color:'#888', fontFamily:'inherit', padding:'9px 4px' }}>← Accueil</button>
-            </Link>
-          </form>
+          </button>
         </div>
 
-        <div className="main">
-
-          {/* ══ Sidebar filtres ══ */}
-          <aside className={`sidebar${showFilters?' open':''}`}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
-              <h2 style={{ fontSize:15, fontWeight:800, color:'#1A1A1A', margin:0 }}>Filtres</h2>
-              {filterCount>0 && (
-                <button style={{ background:'none', border:'none', color:'#1A9E8A', fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:'inherit' }}
-                  onClick={()=>{ setMaxPrice(20000); setTimeSlot('all'); setActivePrefs([]) }}>
-                  Réinitialiser ({filterCount})
-                </button>
-              )}
-            </div>
-
-            <div style={{ marginBottom:18 }}>
-              <div className="sb-title">Prix maximum</div>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
-                <span style={{ fontSize:12, color:'#aaa' }}>Jusqu'à</span>
-                <span style={{ fontSize:14, fontWeight:800, color:'#1A9E8A' }}>{fmtFCFA(maxPrice)}</span>
+        {/* Onglets */}
+        <div style={{ display:'flex' }}>
+          {[
+            { label:'Tout',        count: hasSearched ? filtered.length : null },
+            { label:'Covoiturage', count: hasSearched ? filtered.length : null },
+            { label:'Bus',         count: null },
+            { label:'Train',       count: null },
+          ].map((tab, i) => (
+            <div key={tab.label} style={{
+              flex:1, textAlign:'center', padding:'10px 0 14px',
+              borderBottom: i===0 ? '3px solid #111827' : '3px solid transparent',
+            }}>
+              <div style={{ fontSize:14,fontWeight:i===0?800:500,color:i===0?'#111827':'#9CA3AF' }}>
+                {tab.label}
               </div>
-              <input type="range" min="1000" max="30000" step="500" value={maxPrice}
-                onChange={e=>setMaxPrice(+e.target.value)}
-                style={{ width:'100%', accentColor:'#1A9E8A', cursor:'pointer' }} />
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#ccc', marginTop:3 }}>
-                <span>1 000 F</span><span>30 000 F</span>
+              <div style={{ fontSize:12,fontWeight:700,color:i===0?'#111827':'#C4C9D4',marginTop:1 }}>
+                {tab.count !== null ? tab.count : '—'}
               </div>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <div className="sb-divider" />
+      {/* Filtres rapides */}
+      <div style={{ display:'flex',gap:8,padding:'12px 16px',overflowX:'auto',scrollbarWidth:'none' }}>
+        {[
+          { action:()=>setPanel('filters'), label:`⚙️ Filtres${nbFilters>0?' ('+nbFilters+')':''}`, active: nbFilters>0 },
+          { action:()=>setSortBy('departure'), label:'⏰ Heure',  active: sortBy==='departure' },
+          { action:()=>setSortBy('price'),    label:'💰 Prix',   active: sortBy==='price' },
+          { action:()=>setSortBy('rating'),   label:'⭐ Note',   active: sortBy==='rating' },
+        ].map((b,i) => (
+          <button key={i} onClick={b.action} style={{
+            flexShrink:0,padding:'8px 14px',borderRadius:20,border:'none',
+            background: b.active ? '#111827' : '#fff',
+            color: b.active ? '#fff' : '#374151',
+            fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',
+            boxShadow:'0 1px 4px rgba(0,0,0,.08)',
+          }}>{b.label}</button>
+        ))}
+      </div>
 
-            <div style={{ marginBottom:18 }}>
-              <div className="sb-title">Heure de départ</div>
-              <div style={{ display:'flex', gap:5 }}>
-                {[['all','Tous'],['morning','🌅 Matin'],['afternoon','☀️ Midi'],['evening','🌙 Soir']].map(([id,lbl])=>(
-                  <button key={id} className={`tb${timeSlot===id?' on':''}`} onClick={()=>setTimeSlot(id)}>{lbl}</button>
+      {/* Liste résultats */}
+      <div style={{ padding:'0 16px 100px' }}>
+
+        {loading && (
+          <div style={{ textAlign:'center',padding:'56px 0' }}>
+            <div style={{ width:32,height:32,borderRadius:'50%',border:'3px solid #E5E7EB',borderTopColor:'#1A9E8A',margin:'0 auto 12px',animation:'spin .8s linear infinite' }}/>
+            <p style={{ color:'#6B7280',fontSize:14 }}>Recherche en cours…</p>
+          </div>
+        )}
+
+        {error && <div style={{ background:'#FEF2F2',borderRadius:14,padding:'14px',color:'#DC2626',fontSize:14,margin:'8px 0' }}>⚠️ {error}</div>}
+
+        {!loading && !hasSearched && (
+          <div style={{ textAlign:'center',padding:'72px 0' }}>
+            <div style={{ fontSize:52,marginBottom:16 }}>🚗</div>
+            <p style={{ fontSize:16,fontWeight:700,color:'#374151' }}>Trouvez votre trajet</p>
+            <p style={{ fontSize:14,color:'#9CA3AF',marginTop:6 }}>Tapez sur la barre de recherche ci-dessus</p>
+          </div>
+        )}
+
+        {!loading && hasSearched && filtered.length === 0 && (
+          <div style={{ textAlign:'center',padding:'60px 0' }}>
+            <div style={{ fontSize:48,marginBottom:16 }}>😔</div>
+            <p style={{ fontSize:17,fontWeight:800,color:'#111827',margin:'0 0 8px' }}>Aucun trajet disponible</p>
+            <p style={{ fontSize:14,color:'#9CA3AF',margin:'0 0 28px' }}>Essayez une autre date</p>
+            <button style={{ padding:'13px 32px',borderRadius:30,border:'2px solid #1A9E8A',background:'transparent',color:'#1A9E8A',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
+              🔔 Créer une alerte
+            </button>
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <h2 style={{ fontSize:20,fontWeight:900,color:'#111827',margin:'16px 0 10px',letterSpacing:'-.02em' }}>
+            {fmtFull(date)}
+          </h2>
+        )}
+
+        {!loading && filtered.map(trip => (
+          <BlaCard key={trip.id} trip={trip} selected={selected===trip.id} booked={!!booking[trip.id]}
+            onSelect={()=>setSelected(selected===trip.id?null:trip.id)}
+            onBook={()=>handleBook(trip.id)} user={user} navigate={navigate}/>
+        ))}
+
+        {!loading && hasSearched && filtered.length > 0 && (
+          <div style={{ textAlign:'center',padding:'16px 0 8px' }}>
+            <button style={{ padding:'14px 40px',borderRadius:30,border:'1.5px solid #D1D5DB',background:'#fff',color:'#1A9E8A',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
+              🔔 Créer une alerte
+            </button>
+          </div>
+        )}
+      </div>
+
+      {panel === 'search' && (
+        <SearchSheet from={from} setFrom={setFrom} to={to} setTo={setTo}
+          date={date} setDate={setDate} pax={pax} setPax={setPax}
+          onSearch={()=>{ setPanel(null); doSearch(from,to,date,pax) }}
+          onClose={()=>setPanel(null)}/>
+      )}
+      {panel === 'filters' && (
+        <FiltersSheet maxPrice={maxPrice} setMaxPrice={setMaxPrice}
+          timeSlot={timeSlot} setTimeSlot={setTimeSlot}
+          activePrefs={activePrefs} setActivePrefs={setActivePrefs}
+          onClose={()=>setPanel(null)}/>
+      )}
+    </div>
+  )
+
+  // ── DESKTOP ──────────────────────────────────────────────────
+  return (
+    <div style={{ background:'#F7F5F2',minHeight:'calc(100vh - 72px)',fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      {bookMsg && <div style={{ position:'fixed',top:80,left:'50%',transform:'translateX(-50%)',background:'#1A9E8A',color:'#fff',padding:'12px 24px',borderRadius:12,fontWeight:700,zIndex:9999 }}>{bookMsg}</div>}
+      <div style={{ background:'#fff',padding:'20px',borderBottom:'1px solid #E5E7EB',display:'flex',gap:12,flexWrap:'wrap',alignItems:'center' }}>
+        <select value={from} onChange={e=>setFrom(e.target.value)} style={{ flex:1,minWidth:140,padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}>
+          <option value="">Départ</option>{MAJOR_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={to} onChange={e=>setTo(e.target.value)} style={{ flex:1,minWidth:140,padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}>
+          <option value="">Destination</option>{MAJOR_CITIES.filter(c=>c!==from).map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+        <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}/>
+        <select value={pax} onChange={e=>setPax(e.target.value)} style={{ padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}>
+          {[1,2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} passager{n>1?'s':''}</option>)}
+        </select>
+        <button onClick={()=>doSearch(from,to,date,pax)} style={{ padding:'10px 28px',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',border:'none',borderRadius:10,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit' }}>Rechercher</button>
+      </div>
+      <div style={{ display:'flex',maxWidth:1200,margin:'0 auto',padding:'20px',gap:24 }}>
+        <aside style={{ width:260,flexShrink:0 }}>
+          <div style={{ background:'#fff',borderRadius:16,padding:'20px',border:'1px solid #E5E7EB' }}>
+            <h3 style={{ fontSize:15,fontWeight:800,margin:'0 0 16px' }}>Filtres</h3>
+            <div style={{ marginBottom:16 }}>
+              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 8px' }}>Prix max</p>
+              <input type="range" min={1000} max={20000} step={500} value={maxPrice} onChange={e=>setMaxPrice(+e.target.value)} style={{ width:'100%',accentColor:'#1A9E8A' }}/>
+              <p style={{ fontSize:12,color:'#1A9E8A',fontWeight:700,margin:'4px 0 0' }}>{fmtFCFA(maxPrice)}</p>
+            </div>
+            <div style={{ marginBottom:16 }}>
+              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 8px' }}>Heure de départ</p>
+              <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+                {[{v:'all',l:'Toutes'},{v:'morning',l:'Matin (5h-12h)'},{v:'afternoon',l:'Après-midi'},{v:'evening',l:'Soir (18h+)'}].map(s=>(
+                  <button key={s.v} onClick={()=>setTimeSlot(s.v)} style={{ textAlign:'left',padding:'8px 12px',borderRadius:8,border:timeSlot===s.v?'2px solid #1A9E8A':'1px solid #E5E7EB',background:timeSlot===s.v?'#E8F7F4':'transparent',color:timeSlot===s.v?'#1A9E8A':'#374151',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>{s.l}</button>
                 ))}
               </div>
             </div>
-
-            <div className="sb-divider" />
-
-            <div style={{ marginBottom:18 }}>
-              <div className="sb-title">Préférences</div>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+            <div>
+              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 8px' }}>Préférences</p>
+              <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
                 {PREF_FILTERS.map(p=>(
-                  <button key={p.id} className={`pchip${activePrefs.includes(p.id)?' on':''}`} onClick={()=>togglePref(p.id)}>
-                    {p.icon} {p.id}
-                  </button>
+                  <button key={p.id} onClick={()=>setActivePrefs(a=>a.includes(p.id)?a.filter(x=>x!==p.id):[...a,p.id])} style={{ padding:'6px 10px',borderRadius:20,border:activePrefs.includes(p.id)?'2px solid #1A9E8A':'1px solid #E5E7EB',background:activePrefs.includes(p.id)?'#E8F7F4':'transparent',color:activePrefs.includes(p.id)?'#1A9E8A':'#374151',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>{p.icon} {p.id}</button>
                 ))}
               </div>
             </div>
+          </div>
+        </aside>
+        <div style={{ flex:1,minWidth:0 }}>
+          {loading && <div style={{ textAlign:'center',padding:40 }}>⏳ Recherche…</div>}
+          {error && <div style={{ background:'#FEF2F2',borderRadius:12,padding:16,color:'#DC2626' }}>⚠️ {error}</div>}
+          {hasSearched && !loading && filtered.length===0 && <div style={{ textAlign:'center',padding:60 }}><div style={{ fontSize:48,marginBottom:16 }}>🔍</div><p style={{ fontSize:18,fontWeight:700,color:'#374151' }}>Aucun trajet trouvé</p></div>}
+          {filtered.map(trip=>(
+            <DesktopCard key={trip.id} trip={trip} selected={selected===trip.id} booked={!!booking[trip.id]}
+              onSelect={()=>setSelected(selected===trip.id?null:trip.id)} onBook={()=>handleBook(trip.id)} user={user} navigate={navigate}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
-            <div className="sb-divider" />
-            <label style={{ display:'flex', alignItems:'center', gap:9, cursor:'pointer' }}>
-              <input type="checkbox" style={{ accentColor:'#1A9E8A', width:15, height:15 }} />
-              <span style={{ fontSize:12, fontWeight:700, color:'#555' }}>Profil vérifié uniquement</span>
-            </label>
-          </aside>
+// ════════════════════════════════════════════════════════════
+//  BlaCard — Carte style BlaBlaCar (mobile)
+// ════════════════════════════════════════════════════════════
+function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
+  const depTime = trip.departure_time ? new Date(trip.departure_time) : null
+  const arrTime = trip.arrival_time   ? new Date(trip.arrival_time)   : null
 
-          {/* ══ Résultats ══ */}
-          <div>
+  const diffMs  = depTime && arrTime ? arrTime - depTime : null
+  const diffH   = diffMs ? Math.floor(diffMs/3600000) : null
+  const diffM   = diffMs ? Math.floor((diffMs%3600000)/60000) : null
+  const duree   = diffH !== null ? `${diffH}h${diffM>0?diffM.toString().padStart(2,'0'):''}` : ''
 
-            {hasSearched && (
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
-                <div>
-                  <h1 style={{ fontSize:'clamp(16px,2.5vw,21px)', fontWeight:800, letterSpacing:'-.02em', color:'#1A1A1A', margin:0 }}>
-                    {from||t.misc.from} <span style={{ color:'#1A9E8A' }}>→</span> {to||t.misc.to}
-                  </h1>
-                  <p style={{ fontSize:12, color:'#aaa', marginTop:4, fontWeight:600, margin:'4px 0 0' }}>
-                    {loading ? t.search.loading : t.search.results(filtered.length)}
-                  </p>
-                </div>
-                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                  <button style={{ display:'none', alignItems:'center', gap:6, background:'#fff', border:'1.5px solid rgba(0,0,0,.1)', borderRadius:9, padding:'8px 14px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
-                    className="filter-btn" onClick={()=>setShowFilters(v=>!v)}>
-                    ⚙️ {t.search.filters}{filterCount>0&&` (${filterCount})`}
-                  </button>
-                  <select value={sortBy} onChange={e=>handleSortChange(e.target.value)}
-                    style={{ background:'#fff', border:'1.5px solid rgba(0,0,0,.1)', borderRadius:9, padding:'8px 26px 8px 12px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', outline:'none', color:'#555', appearance:'none', backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='%23aaa' stroke-width='2.5' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center' }}>
-                    <option value="departure">{t.search.sort_departure}</option>
-                    <option value="price">{t.search.sort_price}</option>
-                    <option value="rating">{t.search.sort_rating}</option>
-                    <option value="seats">Plus de places</option>
-                  </select>
-                </div>
+  const isNight = depTime && (depTime.getHours() >= 20 || depTime.getHours() < 6)
+
+  return (
+    <div onClick={onSelect} style={{
+      background:'#fff', borderRadius:20, marginBottom:10,
+      border: selected ? '2.5px solid #1A9E8A' : '1.5px solid transparent',
+      overflow:'hidden', cursor:'pointer',
+      boxShadow: selected ? '0 4px 20px rgba(26,158,138,.1)' : '0 1px 6px rgba(0,0,0,.06)',
+    }}>
+
+      {/* Zone principale trajet */}
+      <div style={{ padding:'18px 18px 14px' }}>
+
+        {/* Ligne départ */}
+        <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+
+          {/* Timeline + heures */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:0, flexShrink:0, minWidth:52 }}>
+            <span style={{ fontSize:17, fontWeight:800, color:'#111827', lineHeight:1 }}>
+              {depTime ? fmt(trip.departure_time) : '--:--'}
+            </span>
+            {duree && (
+              <span style={{ fontSize:11, color:'#9CA3AF', marginTop:2 }}>
+                {duree}{isNight ? ' 🌙' : ''}
+              </span>
+            )}
+            {arrTime && (
+              <span style={{ fontSize:17, fontWeight:800, color:'#111827', marginTop: duree ? 18 : 24, lineHeight:1 }}>
+                {fmt(trip.arrival_time)}
+              </span>
+            )}
+          </div>
+
+          {/* Timeline dots */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:3, flexShrink:0 }}>
+            <div style={{ width:10, height:10, borderRadius:'50%', border:'2px solid #374151', background:'#fff' }}/>
+            <div style={{ width:2, height: arrTime ? 36 : 20, background:'#D1D5DB', margin:'3px 0' }}/>
+            {arrTime && <div style={{ width:10, height:10, borderRadius:'50%', border:'2px solid #374151', background:'#fff' }}/>}
+          </div>
+
+          {/* Villes */}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:16, fontWeight:700, color:'#111827', lineHeight:1, paddingTop:1 }}>
+              {trip.origin_city}
+            </div>
+            {arrTime && (
+              <div style={{ fontSize:16, fontWeight:700, color:'#111827', marginTop: 32, lineHeight:1 }}>
+                {trip.destination_city}
               </div>
             )}
+          </div>
 
-            {/* Skeleton */}
-            {loading && Array.from({length:3}).map((_,i)=>(
-              <div key={i} style={{ background:'#fff', border:'1.5px solid rgba(0,0,0,.07)', borderRadius:16, padding:'18px 20px', marginBottom:10, opacity:1-i*.2 }}>
-                <div style={{ display:'grid', gridTemplateColumns:'56px 1fr 120px 130px', gap:14 }}>
-                  <div><div className="sk" style={{ height:24,width:44,marginBottom:4 }}/><div className="sk" style={{ height:9,width:36 }}/></div>
-                  <div><div className="sk" style={{ height:13,width:'60%',marginBottom:8 }}/><div className="sk" style={{ height:9,width:'40%' }}/></div>
-                  <div><div className="sk" style={{ height:13,width:'80%',marginBottom:6 }}/><div className="sk" style={{ height:9,width:'60%' }}/></div>
-                  <div style={{ textAlign:'right' }}><div className="sk" style={{ height:20,width:90,marginLeft:'auto',marginBottom:4 }}/><div className="sk" style={{ height:9,width:60,marginLeft:'auto' }}/></div>
-                </div>
-              </div>
-            ))}
-
-            {/* Erreur */}
-            {error && !loading && (
-              <div style={{ background:'#fef2f2', border:'1.5px solid rgba(239,68,68,.2)', borderRadius:14, padding:'16px 20px', color:'#dc2626', fontSize:14, fontWeight:700 }}>
-                ⚠️ {error}
-              </div>
-            )}
-
-            {/* Vide */}
-            {!loading && hasSearched && filtered.length===0 && !error && (
-              <NoResultBlock from={from} to={to} user={user} />
-            )}
-
-            {/* Cartes trajet */}
-            {!loading && filtered.map((trip,idx)=>(
-              <div key={trip.id} style={{ animationDelay:`${idx*.06}s` }}>
-                <div className={`tc${selected===trip.id?' sel':''}`}
-                  onClick={()=>setSelected(s=>s===trip.id?null:trip.id)}>
-                  <div className="tc-grid">
-
-                    {/* Heure */}
-                    <div>
-                      <div className="dep-time">{fmt(trip.departureAt)}</div>
-                      <div className="dep-date">{fmtDate(trip.departureAt)}</div>
-                    </div>
-
-                    {/* Route */}
-                    <div className="route-viz">
-                      <div>
-                        <div className="city-name">{trip.from}</div>
-                        <div className="city-addr">{trip.fromAddress||'Gare routière'}</div>
-                      </div>
-                      <div className="rl">
-                        <div className="rt"><div className="rd"/></div>
-                        <div className="rm">{trip.duration}</div>
-                      </div>
-                      <div>
-                        <div className="city-name">{trip.to}</div>
-                        <div className="city-addr">{trip.toAddress||'Centre-ville'}</div>
-                      </div>
-                    </div>
-
-                    {/* Conducteur */}
-                    <div className="drv-block">
-                      <div className="drv-av" style={{
-                        background: trip.driverAvatarUrl ? '#E8F7F4' : (trip.driverColor || '#1A9E8A'),
-                        overflow:'hidden', padding:0,
-                      }}>
-                        {trip.driverAvatarUrl
-                          ? <img
-                              src={trip.driverAvatarUrl.startsWith('http')
-                                ? trip.driverAvatarUrl
-                                : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${trip.driverAvatarUrl}`}
-                              alt={trip.driverFirstName}
-                              style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%', display:'block' }}
-                              onError={e => {
-                                e.target.style.display = 'none'
-                                e.target.parentNode.style.background = trip.driverColor || '#1A9E8A'
-                                e.target.parentNode.textContent = trip.driverAvatar || '?'
-                              }}
-                            />
-                          : <span style={{ color:'#fff', fontWeight:800, fontSize:14 }}>{trip.driverAvatar || '?'}</span>
-                        }
-                      </div>
-                      <div>
-                        <div className="drv-name">{trip.driverFirstName}</div>
-                        <div className="drv-stars">{stars(trip.driverRating)}</div>
-                        <div className="drv-ct">{trip.driverReviews||0} {t.misc.reviews}</div>
-                        {trip.driverVerified && <div className="verif">✓ {t.misc.verified}</div>}
-                      </div>
-                    </div>
-
-                    {/* Prix */}
-                    <div className="prc-block">
-                      <div className="prc-val">{fmtFCFA(trip.price)}</div>
-                      <div className="prc-lbl">/ place</div>
-                      <div className="seats-dots">
-                        {Array.from({length:Math.min(trip.totalSeats||4,6)}).map((_,k)=>(
-                          <div key={k} className={`sd ${k<((trip.totalSeats||4)-(trip.availableSeats||0))?'taken':'free'}`}/>
-                        ))}
-                      </div>
-                      <div style={{ fontSize:10,color:'#bbb',marginTop:2,fontWeight:600 }}>
-                        {trip.availableSeats||0} libre{(trip.availableSeats||0)>1?'s':''}
-                      </div>
-                    </div>
-                  </div>
-
-                  {trip.prefs?.length>0 && (
-                    <div className="prefs-row">
-                      {trip.prefs.map(p=><span key={p} className="ptag">{p}</span>)}
-                      <span style={{ marginLeft:'auto', fontSize:11, color:'#1A9E8A', fontWeight:800 }}>
-                        {selected===trip.id?'↑ Masquer':'Voir détails →'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* ══ Détail avec carte ══ */}
-                {selected===trip.id && (
-                  <div className="detail">
-                    <div style={{ background:'linear-gradient(135deg,#1A9E8A,#22C6AD)', padding:'16px 22px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                      <div>
-                        <div style={{ color:'rgba(255,255,255,.7)', fontSize:10, fontWeight:800, marginBottom:3, letterSpacing:'.06em' }}>TRAJET SÉLECTIONNÉ · 🇨🇲 CAMEROUN</div>
-                        <div style={{ color:'#fff', fontSize:18, fontWeight:800 }}>{trip.from} → {trip.to}</div>
-                        <div style={{ color:'rgba(255,255,255,.8)', fontSize:12, marginTop:2 }}>
-                          {fmt(trip.departureAt)} · {trip.duration} · {fmtFCFA(trip.price)}/place
-                        </div>
-                      </div>
-                      <div style={{ fontSize:32, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.2))' }}>🗺️</div>
-                    </div>
-
-                    <div style={{ padding:'20px 22px' }}>
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18, marginBottom:18 }}>
-
-                        {/* Conducteur */}
-                        <div style={{ background:'#F7F5F2', borderRadius:12, padding:14 }}>
-                          <div style={{ fontSize:9, fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase', color:'#bbb', marginBottom:10 }}>{t.search.driver}</div>
-                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                            <div className="drv-av" style={{ width:44, height:44, fontSize:17, flexShrink:0,
-                              background: trip.driverAvatarUrl ? '#E8F7F4' : (trip.driverColor || '#1A9E8A'),
-                              overflow:'hidden', padding:0 }}>
-                              {trip.driverAvatarUrl
-                                ? <img
-                                    src={trip.driverAvatarUrl.startsWith('http')
-                                      ? trip.driverAvatarUrl
-                                      : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${trip.driverAvatarUrl}`}
-                                    alt={trip.driverName}
-                                    style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%', display:'block' }}
-                                    onError={e => {
-                                      e.target.style.display = 'none'
-                                      e.target.parentNode.style.background = trip.driverColor || '#1A9E8A'
-                                      e.target.parentNode.textContent = trip.driverAvatar || '?'
-                                    }}
-                                  />
-                                : <span style={{ color:'#fff', fontWeight:800 }}>{trip.driverAvatar || '?'}</span>
-                              }
-                            </div>
-                            <div>
-                              <div style={{ fontWeight:800, fontSize:15, color:'#1A1A1A' }}>{trip.driverName}</div>
-                              <div style={{ color:'#F59E0B', fontSize:11 }}>{stars(trip.driverRating)}</div>
-                              <div style={{ color:'#aaa', fontSize:11 }}>{trip.driverRating||0}/5 · {trip.driverReviews||0} {t.misc.reviews}</div>
-                              {trip.driverVerified && <div style={{ color:'#1A9E8A', fontSize:11, fontWeight:700 }}>✓ {t.misc.verified}</div>}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Infos */}
-                        <div>
-                          <div style={{ fontSize:9, fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase', color:'#bbb', marginBottom:10 }}>{t.search.vehicle}</div>
-                          {[
-                            ['📍', t.search.departure, trip.fromAddress||trip.from],
-                            ['🏁', t.search.arrival,   trip.toAddress||trip.to],
-                            ['⏱',  t.search.duration,  trip.duration],
-                            ['💺', t.misc.seats, `${trip.availableSeats||0} ${lang==='fr'?'libre':'left'} / ${trip.totalSeats||4}`]
-                          ].map(([icon,key,val])=>(
-                            <div key={key} style={{ display:'flex', gap:8, marginBottom:6 }}>
-                              <span style={{ fontSize:12, width:16, flexShrink:0 }}>{icon}</span>
-                              <div>
-                                <div style={{ fontSize:9, color:'#bbb', fontWeight:800, textTransform:'uppercase', letterSpacing:'.05em' }}>{key}</div>
-                                <div style={{ fontSize:12, fontWeight:700, color:'#1A1A1A' }}>{val}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* ══ CARTE ══ */}
-                      <div style={{ marginBottom:18 }}>
-                        <div style={{ fontSize:9, fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase', color:'#bbb', marginBottom:10 }}>
-                          📍 Itinéraire sur la carte
-                        </div>
-                        <TripMap from={trip.from} to={trip.to} height={260} />
-                      </div>
-
-                      {/* Prefs */}
-                      {trip.prefs?.length>0 && (
-                        <div style={{ marginBottom:16 }}>
-                          <div style={{ fontSize:9, fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase', color:'#bbb', marginBottom:8 }}>Préférences</div>
-                          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                            {trip.prefs.map(p=>(
-                              <span key={p} style={{ background:'#E8F7F4', color:'#157A6B', border:'1px solid rgba(26,158,138,.2)', borderRadius:7, fontSize:11, fontWeight:700, padding:'4px 10px' }}>{p}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {trip.description && (
-                        <div style={{ background:'#F7F5F2', borderRadius:10, padding:'12px 14px', marginBottom:16, fontSize:13, color:'#888', lineHeight:1.65, fontStyle:'italic' }}>
-                          "{trip.description}"
-                        </div>
-                      )}
-
-                      {/* CTA */}
-                      <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                        <div>
-                          <div style={{ fontSize:20, fontWeight:800, color:'#1A9E8A' }}>
-                            {fmtFCFA(trip.price)}
-                            <span style={{ fontSize:12, fontWeight:600, color:'#aaa', marginLeft:6 }}>/ personne</span>
-                          </div>
-                          <div style={{ fontSize:11, color:'#bbb', fontWeight:600 }}>Paiement à bord · Mobile Money · Orange Money</div>
-                        </div>
-                        <div style={{ flex:1 }}/>
-                        {booking[trip.id]==='done' ? (
-                          <div style={{ background:'#E8F7F4', color:'#157A6B', borderRadius:10, padding:'12px 20px', fontSize:14, fontWeight:800 }}>✅ Réservé !</div>
-                        ) : (
-                          <>
-                            <button style={{ background:'none', border:'1.5px solid rgba(26,158,138,.4)', color:'#1A9E8A', borderRadius:10, padding:'11px 16px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
-                              onClick={e => {
-                                e.stopPropagation()
-                                if (!user) { navigate('/login'); return }
-                                setContactTrip(trip)
-                              }}>
-                              💬 Contacter
-                            </button>
-                            <button className="btn-primary" style={{ padding:'11px 22px', fontSize:14 }}
-                              disabled={booking[trip.id]==='loading'}
-                              onClick={e=>{ e.stopPropagation(); handleBook(trip) }}>
-                              {booking[trip.id]==='loading'?'…':'Réserver →'}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          {/* Prix */}
+          <div style={{ flexShrink:0, textAlign:'right' }}>
+            <span style={{ fontSize:22, fontWeight:900, color:'#111827', letterSpacing:'-.03em' }}>
+              {Number(trip.price_per_seat).toLocaleString('fr-FR')}
+            </span>
+            <span style={{ fontSize:13, fontWeight:700, color:'#111827' }}> FCFA</span>
           </div>
         </div>
       </div>
 
-      {/* ══ Modal Contacter ══ */}
-      {contactTrip && (
-        <ContactModal
-          trip={contactTrip}
-          onClose={() => setContactTrip(null)}
-        />
+      {/* Séparateur */}
+      <div style={{ height:1, background:'#F3F4F6', margin:'0 18px' }}/>
+
+      {/* Conducteur */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 18px' }}>
+        {/* Icône voiture */}
+        <span style={{ fontSize:18, color:'#9CA3AF' }}>🚗</span>
+
+        {/* Avatar */}
+        {trip.driver_avatar_url ? (
+          <img src={trip.driver_avatar_url} alt="" style={{ width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid #E5E7EB' }}/>
+        ) : (
+          <div style={{ width:36,height:36,borderRadius:'50%',background:trip.driver_avatar_color||'#1A9E8A',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:15,color:'#fff',flexShrink:0 }}>
+            {(trip.driver_name||'?')[0].toUpperCase()}
+          </div>
+        )}
+
+        {/* Nom + étoiles */}
+        <div style={{ flex:1,minWidth:0 }}>
+          <div style={{ fontSize:14,fontWeight:700,color:'#111827' }}>{trip.driver_name}</div>
+          <div style={{ display:'flex',alignItems:'center',gap:6,marginTop:2 }}>
+            <span style={{ fontSize:12,color:'#F59E0B',letterSpacing:1 }}>★ {parseFloat(trip.driver_rating||0).toFixed(1)}</span>
+            {parseFloat(trip.driver_rating||0) >= 4.8 && (
+              <span style={{ background:'#EEF2FF',color:'#4F46E5',fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10 }}>Super Conducteur</span>
+            )}
+          </div>
+        </div>
+
+        {/* Places */}
+        <div style={{ flexShrink:0,display:'flex',alignItems:'center',gap:4,color:'#9CA3AF' }}>
+          {'👤'.repeat(Math.min(trip.available_seats||0, 3))}
+          {(trip.available_seats||0) > 3 && <span style={{ fontSize:11,fontWeight:700 }}>+{trip.available_seats-3}</span>}
+        </div>
+      </div>
+
+      {/* Actions — visibles si sélectionné */}
+      {selected && (
+        <div style={{ borderTop:'1px solid #F3F4F6',padding:'12px 18px',display:'flex',gap:10 }}>
+          <button
+            onClick={e=>{e.stopPropagation(); if(!user){navigate('/login')}else{onBook()}}}
+            disabled={booked||!trip.available_seats}
+            style={{ flex:1,padding:'13px',border:'none',borderRadius:14,background:booked?'#9CA3AF':!trip.available_seats?'#E5E7EB':'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',fontSize:15,fontWeight:800,cursor:booked||!trip.available_seats?'not-allowed':'pointer',fontFamily:'inherit' }}>
+            {booked ? '✓ Envoyée' : !trip.available_seats ? 'Complet' : 'Réserver'}
+          </button>
+          <Link to={user?`/messages?trip=${trip.id}`:'/login'} onClick={e=>e.stopPropagation()}
+            style={{ padding:'13px 18px',border:'1.5px solid #E5E7EB',borderRadius:14,fontSize:18,color:'#374151',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center' }}>
+            💬
+          </Link>
+        </div>
       )}
+    </div>
+  )
+}
+
+// ── Desktop Card ─────────────────────────────────────────────
+function DesktopCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
+  return (
+    <div onClick={onSelect} style={{ background:'#fff',borderRadius:16,marginBottom:12,border:selected?'2px solid #1A9E8A':'1px solid #E5E7EB',padding:'18px 20px',cursor:'pointer',boxShadow:selected?'0 4px 16px rgba(26,158,138,.1)':'0 1px 4px rgba(0,0,0,.04)' }}>
+      <div style={{ display:'flex',alignItems:'center',gap:16 }}>
+        <div>
+          <div style={{ fontSize:20,fontWeight:900,color:'#111' }}>{fmt(trip.departure_time)}</div>
+          <div style={{ fontSize:13,color:'#9CA3AF',marginTop:2 }}>{fmtDate(trip.departure_time)}</div>
+        </div>
+        <div style={{ flex:1,textAlign:'center' }}>
+          <div style={{ fontSize:13,fontWeight:700,color:'#111' }}>{trip.origin_city} → {trip.destination_city}</div>
+          <div style={{ fontSize:12,color:'#9CA3AF',marginTop:2 }}>★ {parseFloat(trip.driver_rating||0).toFixed(1)} · {trip.driver_name}</div>
+        </div>
+        <div>
+          <div style={{ fontSize:20,fontWeight:900,color:'#1A9E8A' }}>{Number(trip.price_per_seat).toLocaleString('fr-FR')} FCFA</div>
+          <div style={{ fontSize:12,color:'#9CA3AF',marginTop:2,textAlign:'right' }}>{trip.available_seats} place{trip.available_seats>1?'s':''}</div>
+        </div>
+      </div>
+      {selected && (
+        <div style={{ marginTop:14,display:'flex',gap:10,borderTop:'1px solid #F3F4F6',paddingTop:14 }}>
+          <button onClick={e=>{e.stopPropagation();if(!user){navigate('/login')}else{onBook()}}} disabled={booked||!trip.available_seats}
+            style={{ flex:1,padding:'11px',border:'none',borderRadius:10,background:booked?'#9CA3AF':'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit' }}>
+            {booked?'✓ Envoyée':'Réserver'}
+          </button>
+          <Link to={user?`/messages?trip=${trip.id}`:'/login'} onClick={e=>e.stopPropagation()}
+            style={{ padding:'11px 18px',border:'1.5px solid #E5E7EB',borderRadius:10,color:'#374151',textDecoration:'none',display:'flex',alignItems:'center' }}>
+            💬
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── SearchSheet ──────────────────────────────────────────────
+function SearchSheet({ from, setFrom, to, setTo, date, setDate, pax, setPax, onSearch, onClose }) {
+  const today = new Date().toISOString().split('T')[0]
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:8000 }}/>
+      <div style={{ position:'fixed',bottom:0,left:0,right:0,zIndex:8001,background:'#fff',borderRadius:'24px 24px 0 0',padding:'0 20px 40px',maxHeight:'90vh',overflowY:'auto' }}>
+        <div style={{ display:'flex',justifyContent:'center',padding:'12px 0 8px' }}>
+          <div style={{ width:40,height:4,borderRadius:2,background:'#E5E7EB' }}/>
+        </div>
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
+          <h3 style={{ fontSize:18,fontWeight:900,margin:0,color:'#111827' }}>Modifier la recherche</h3>
+          <button onClick={onClose} style={{ background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#9CA3AF' }}>✕</button>
+        </div>
+        <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
+          {[
+            { label:'Départ', value:from, set:setFrom, exclude:to },
+            { label:'Destination', value:to, set:setTo, exclude:from },
+          ].map(f => (
+            <div key={f.label}>
+              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 6px' }}>{f.label}</p>
+              <select value={f.value} onChange={e=>f.set(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none',color:f.value?'#111827':'#9CA3AF' }}>
+                <option value="">{f.label}</option>
+                {['Douala','Yaoundé','Bafoussam','Bamenda','Garoua','Maroua','Ngaoundéré','Bertoua','Kumba','Limbe','Kribi'].filter(c=>c!==f.exclude).map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          ))}
+          <div>
+            <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 6px' }}>Date</p>
+            <input type="date" value={date} min={today} onChange={e=>setDate(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none',boxSizing:'border-box' }}/>
+          </div>
+          <div>
+            <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 6px' }}>Passagers</p>
+            <select value={pax} onChange={e=>setPax(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none' }}>
+              {[1,2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} adulte{n>1?'s':''}</option>)}
+            </select>
+          </div>
+          <button onClick={onSearch} style={{ width:'100%',padding:'16px',border:'none',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',borderRadius:16,fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginTop:4 }}>
+            Rechercher
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── FiltersSheet ─────────────────────────────────────────────
+function FiltersSheet({ maxPrice, setMaxPrice, timeSlot, setTimeSlot, activePrefs, setActivePrefs, onClose }) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:8000 }}/>
+      <div style={{ position:'fixed',bottom:0,left:0,right:0,zIndex:8001,background:'#fff',borderRadius:'24px 24px 0 0',padding:'0 20px 40px',maxHeight:'85vh',overflowY:'auto' }}>
+        <div style={{ display:'flex',justifyContent:'center',padding:'12px 0 8px' }}>
+          <div style={{ width:40,height:4,borderRadius:2,background:'#E5E7EB' }}/>
+        </div>
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24 }}>
+          <h3 style={{ fontSize:18,fontWeight:900,margin:0,color:'#111827' }}>Filtres</h3>
+          <button onClick={onClose} style={{ background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#9CA3AF' }}>✕</button>
+        </div>
+        <div style={{ marginBottom:28 }}>
+          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10 }}>
+            <p style={{ fontSize:15,fontWeight:800,color:'#111827',margin:0 }}>Prix maximum</p>
+            <span style={{ fontSize:14,fontWeight:800,color:'#1A9E8A' }}>{Number(maxPrice).toLocaleString('fr-FR')} FCFA</span>
+          </div>
+          <input type="range" min={1000} max={20000} step={500} value={maxPrice} onChange={e=>setMaxPrice(+e.target.value)} style={{ width:'100%',accentColor:'#1A9E8A',height:6 }}/>
+          <div style={{ display:'flex',justifyContent:'space-between',fontSize:11,color:'#9CA3AF',marginTop:4 }}>
+            <span>1 000 FCFA</span><span>20 000 FCFA</span>
+          </div>
+        </div>
+        <div style={{ marginBottom:28 }}>
+          <p style={{ fontSize:15,fontWeight:800,color:'#111827',margin:'0 0 12px' }}>Heure de départ</p>
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
+            {[{v:'all',l:'Toutes',i:'🕐'},{v:'morning',l:'Matin',i:'🌅'},{v:'afternoon',l:'Après-midi',i:'☀️'},{v:'evening',l:'Soir',i:'🌙'}].map(s=>(
+              <button key={s.v} onClick={()=>setTimeSlot(s.v)} style={{ padding:'12px',borderRadius:14,border:timeSlot===s.v?'2px solid #111827':'1.5px solid #E5E7EB',background:timeSlot===s.v?'#F3F4F6':'#F7F8FA',color:'#111827',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'center' }}>
+                {s.i} {s.l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom:28 }}>
+          <p style={{ fontSize:15,fontWeight:800,color:'#111827',margin:'0 0 12px' }}>Préférences</p>
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
+            {PREF_FILTERS.map(p=>(
+              <button key={p.id} onClick={()=>setActivePrefs(a=>a.includes(p.id)?a.filter(x=>x!==p.id):[...a,p.id])} style={{ padding:'12px',borderRadius:14,border:activePrefs.includes(p.id)?'2px solid #1A9E8A':'1.5px solid #E5E7EB',background:activePrefs.includes(p.id)?'#E8F7F4':'#F7F8FA',color:activePrefs.includes(p.id)?'#1A9E8A':'#374151',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'center' }}>
+                {p.icon} {p.id}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button onClick={onClose} style={{ width:'100%',padding:'16px',border:'none',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',borderRadius:16,fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit' }}>
+          Appliquer
+        </button>
+      </div>
     </>
   )
 }

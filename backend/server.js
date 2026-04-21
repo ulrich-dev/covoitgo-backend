@@ -29,6 +29,7 @@ async function runMigrations() {
     'migration_avatar.sql',
     'migration_language.sql',
     'migration_alerts.sql',
+    'migration_calls.sql',
   ]
   console.log('\n  🗄️  Vérification des migrations...')
   for (const file of files) {
@@ -60,6 +61,7 @@ const confirmRoutes       = require('./routes/confirm')
 const contactRoutes       = require('./routes/contact')
 const freemiumRoutes      = require('./routes/freemium')
 const { router: alertsRoutes } = require('./routes/alerts')
+const callsRoutes             = require('./routes/calls')
 const { startScheduler }  = require('./scheduler')
 
 const app    = express()
@@ -138,6 +140,7 @@ app.use('/api/confirm',       confirmRoutes)
 app.use('/api/contact',       contactRoutes)
 app.use('/api/freemium',      freemiumRoutes)
 app.use('/api/alerts',        alertsRoutes)
+app.use('/api/calls',         callsRoutes)
 
 // ── Fichiers statiques — uploads (avatars, documents) ──────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
