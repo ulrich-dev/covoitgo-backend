@@ -82,12 +82,22 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true)
     if (process.env.NODE_ENV === 'production') {
-      // Accepter le domaine frontend configuré + sous-domaines Vercel/Netlify
       const allowed = [
         process.env.CLIENT_URL,
-        process.env.CLIENT_URL_2, // ex: domaine personnalisé
+        process.env.CLIENT_URL_2,
       ].filter(Boolean)
-      const isAllowed = allowed.some(u => origin === u || origin.endsWith('.vercel.app') || origin.endsWith('.netlify.app'))
+      const isAllowed =
+        allowed.some(u => origin === u) ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.netlify.app') ||
+        // ── Capacitor Android/iOS ──
+        origin === 'https://localhost' ||
+        origin === 'http://localhost' ||
+        origin === 'capacitor://localhost' ||
+        origin === 'ionic://localhost' ||
+        origin.startsWith('http://localhost:') ||
+        // ── Nouveau domaine Clando ──
+        origin.endsWith('clando.online')
       return callback(isAllowed ? null : new Error(`CORS bloqué : ${origin}`), isAllowed)
     }
     callback(null, true)
@@ -96,7 +106,6 @@ app.use(cors({
   methods:        ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
-
 // ── Sessions ──────────────────────────────────────────────────
 const SESSION_DURATION = 3 * 60 * 60 * 1000 // 3 heures
 
