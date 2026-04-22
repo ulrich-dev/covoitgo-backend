@@ -91,7 +91,18 @@ export default function SearchTrips() {
     finally  { setLoading(false) }
   }, [])
 
-  useEffect(() => { if (from && to) doSearch(from, to, date, pax) }, [])
+  // Lancer la recherche automatiquement si params URL présents
+  const urlFrom = urlParams.get('from')
+  const urlTo   = urlParams.get('to')
+  const urlDate = urlParams.get('date') || ''
+  const urlPax  = urlParams.get('passengers') || '1'
+
+  useEffect(() => {
+    if (urlFrom && urlTo) {
+      setFrom(urlFrom); setTo(urlTo); setDate(urlDate); setPax(urlPax)
+      doSearch(urlFrom, urlTo, urlDate, urlPax)
+    }
+  }, [urlFrom, urlTo])
 
   const filtered = trips.filter(t => {
     if (t.price_per_seat > maxPrice) return false
@@ -452,12 +463,12 @@ function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
       {/* Actions si sélectionné */}
       {selected&&(
         <>
-          {/* Carte du trajet */}
+          {/* Carte du trajet avec itinéraire */}
           <TripMapEmbed
-            origin={trip.origin_city ? { name:trip.origin_city, lat:null, lon:null } : null}
-            destination={trip.destination_city ? { name:trip.destination_city, lat:null, lon:null } : null}
-            height={200}
-            showRoute={false}
+            origin={trip.origin_city ? { name: trip.origin_city } : null}
+            destination={trip.destination_city ? { name: trip.destination_city } : null}
+            trip={trip}
+            height={240}
           />
           <div style={{borderTop:'1px solid #F3F4F6',padding:'14px 20px',display:'flex',gap:10}}>
             <button

@@ -121,7 +121,7 @@ export default function MobileMessages() {
   if (activeId) {
     const other = meta?.other || {}
     return (
-      <div style={{position:'fixed',inset:0,background:'#F7F8FA',display:'flex',flexDirection:'column',zIndex:200,fontFamily:"-apple-system,sans-serif"}}>
+      <div style={{position:'fixed',inset:0,background:'#F7F8FA',display:'flex',flexDirection:'column',zIndex:1100,fontFamily:"-apple-system,sans-serif"}}>
 
         {/* Header */}
         <div style={{background:'#fff',padding:'14px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',alignItems:'center',gap:12,flexShrink:0}}>

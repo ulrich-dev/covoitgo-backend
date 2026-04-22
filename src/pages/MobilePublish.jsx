@@ -56,32 +56,54 @@ export default function MobilePublish() {
   const prev = () => setStep(s=>Math.max(0,s-1))
 
   const publish = async () => {
+    // ── Validation explicite avant envoi ──────────────────────
+    const fromVal = typeof form.from === 'object' ? form.from?.name || form.from?.display : form.from
+    const toVal   = typeof form.to   === 'object' ? form.to?.name   || form.to?.display   : form.to
+
+    if (!fromVal || !fromVal.trim()) { setError('Veuillez sélectionner une ville de départ'); return }
+    if (!toVal   || !toVal.trim())   { setError('Veuillez sélectionner une destination');      return }
+    if (!form.date)                  { setError('Veuillez choisir une date');                  return }
+    if (!form.time)                  { setError("Veuillez choisir l'heure de départ");         return }
+
+    const departureAt = new Date(`${form.date}T${form.time}:00`).toISOString()
+
+    const payload = {
+      // Champs validés par le backend (camelCase avec express-validator)
+      originCity:      fromVal.trim(),
+      destinationCity: toVal.trim(),
+      departureAt:   departureAt,
+      pricePerSeat:   Number(form.price),
+      availableSeats:  Number(form.seats),
+      preferences:      form.prefs || [],
+      description:            form.notes || '',
+    }
+
+    // Log de debug — visible dans Chrome DevTools → Console
+    console.log('🚗 Publish payload:', JSON.stringify(payload, null, 2))
+
     setLoading(true); setError('')
     try {
-      // Le backend attend : from, to, departureAt, price, totalSeats, prefs, description
-      const departureAt = new Date(`${form.date}T${form.time}:00`).toISOString()
       const res = await authFetch(`${API_URL}/api/trips`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          from:        form.from,
-          to:          form.to,
-          departureAt: departureAt,
-          price:       Number(form.price),
-          totalSeats:  Number(form.seats),
-          prefs:       form.prefs,
-          description: form.notes || '',
-        }),
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
       })
       const data = await res.json()
+      console.log('📡 Response:', data)
+
       if (data.success || data.id || data.trip) {
         setSuccess(true)
-        setTimeout(()=>navigate('/my-trips'), 2000)
+        setTimeout(() => navigate('/my-trips'), 2000)
       } else {
-        setError(data.message || 'Erreur lors de la publication')
+        // Afficher l'erreur exacte du backend + les valeurs envoyées
+        const sent = `Envoyé: originCity="${payload.originCity}", destinationCity="${payload.destinationCity}"`
+        setError(`${data.message || 'Erreur'} (${sent})`)
       }
-    } catch { setError('Impossible de contacter le serveur.') }
-    finally  { setLoading(false) }
+    } catch (err) {
+      setError('Impossible de contacter le serveur : ' + err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const today = new Date().toISOString().split('T')[0]

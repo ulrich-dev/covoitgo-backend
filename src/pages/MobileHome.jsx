@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { POPULAR_ROUTES } from '../data/cameroun'
-import CityPicker from '../components/CityPicker'
+import { MAJOR_CITIES } from '../data/cameroun'
 
 export default function MobileHome() {
   const { user }   = useAuth()
@@ -58,13 +58,13 @@ export default function MobileHome() {
           {/* Départ */}
           <div style={{ display:'flex', alignItems:'center', padding:'14px 16px', gap:12, borderBottom:'1px solid #F3F4F6', position:'relative', zIndex:10 }}>
             <div style={{ width:12,height:12,borderRadius:'50%',border:'2.5px solid #1A9E8A',flexShrink:0 }}/>
-            <CityPicker
+            <select
               value={from}
-              onChange={setFrom}
-              placeholder="Départ"
-              exclude={to}
-              style={{ flex:1 }}
-            />
+              onChange={e => setFrom(e.target.value)}
+              style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:16, fontFamily:'inherit', fontWeight:from?700:400, color:from?'#111827':'#9CA3AF', cursor:'pointer' }}>
+              <option value="">Départ</option>
+              {MAJOR_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
 
           {/* Swap button */}
@@ -79,13 +79,13 @@ export default function MobileHome() {
           {/* Destination */}
           <div style={{ display:'flex', alignItems:'center', padding:'14px 16px', gap:12, borderBottom:'1px solid #F3F4F6', position:'relative', zIndex:9 }}>
             <div style={{ width:12,height:12,borderRadius:3,border:'2.5px solid #6B7280',flexShrink:0 }}/>
-            <CityPicker
+            <select
               value={to}
-              onChange={setTo}
-              placeholder="Destination"
-              exclude={from}
-              style={{ flex:1 }}
-            />
+              onChange={e => setTo(e.target.value)}
+              style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:16, fontFamily:'inherit', fontWeight:to?700:400, color:to?'#111827':'#9CA3AF', cursor:'pointer' }}>
+              <option value="">Destination</option>
+              {MAJOR_CITIES.filter(x => x !== from).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
 
           {/* Date + Passagers */}
