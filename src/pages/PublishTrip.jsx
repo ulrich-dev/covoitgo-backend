@@ -52,21 +52,13 @@ export default function PublishTrip() {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          from:             form.from,
-          to:               form.to,
-          departureAt,
-          price:            form.price,
-          totalSeats:       form.seats,
-          prefs:            form.prefs,
-          description:      form.notes,
-          // fallback snake_case
-          origin_city:      form.from,
-          destination_city: form.to,
-          departure_time:   departureAt,
-          price_per_seat:   form.price,
-          available_seats:  form.seats,
-          preferences:      form.prefs,
-          notes:            form.notes,
+          from:        form.from,
+          to:          form.to,
+          departureAt: departureAt,
+          price:       Number(form.price),
+          totalSeats:  Number(form.seats),
+          prefs:       form.prefs,
+          description: form.notes || '',
         }),
       })
       const data = await res.json()
