@@ -3,24 +3,54 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useMobile } from '../hooks/useMobile'
 import { API_URL, authFetch } from '../utils/api'
-import { POPULAR_ROUTES,MAJOR_CITIES } from '../data/cameroun'
-import CityPicker from '../components/CityPicker'
+import { POPULAR_ROUTES, MAJOR_CITIES } from '../data/cameroun'
 
-const fmt = (iso) => {
+const fmtTime = (iso) => {
   if (!iso) return '--:--'
   const d = new Date(iso)
+  if (isNaN(d)) return '--:--'
   return `${String(d.getHours()).padStart(2,'0')}h${String(d.getMinutes()).padStart(2,'0')}`
 }
 const fmtDate = (iso) => {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})
+  const d = new Date(iso)
+  if (isNaN(d)) return ''
+  return d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})
 }
 const fmtFull = (iso) => {
   if (!iso) return "Aujourd'hui"
-  return new Date(iso).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
+  const d = new Date(iso)
+  if (isNaN(d)) return "Aujourd'hui"
+  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
 }
 const fmtFCFA = (n) => n ? `${Number(n).toLocaleString('fr-FR')} FCFA` : ''
-const stars = (r) => { const f=Math.round(r||0); return '★'.repeat(f)+'☆'.repeat(5-f) }
+
+// ── Normaliseur backend → frontend ───────────────────────────
+// Le backend peut renvoyer soit camelCase (API v2) soit snake_case (ancien)
+// Ce helper uniformise le tout
+const normalizeTrip = (t) => ({
+  id:                t.id,
+  origin_city:       t.from              || t.origin_city        || '',
+  destination_city:  t.to                || t.destination_city   || '',
+  origin_address:    t.fromAddress       || t.origin_address     || '',
+  destination_address: t.toAddress       || t.destination_address || '',
+  departure_time:    t.departureAt       || t.departure_time     || null,
+  arrival_time:      t.estimatedArrival  || t.arrival_time       || null,
+  price_per_seat:    Number(t.price ?? t.price_per_seat ?? 0),
+  available_seats:   parseInt(t.remaining ?? t.availableSeats ?? t.available_seats ?? 0),
+  total_seats:       parseInt(t.totalSeats ?? t.total_seats ?? 0),
+  preferences:       t.prefs             || t.preferences        || [],
+  duration:          t.duration          || '',
+  // Conducteur
+  driver_id:         t.driverId          || t.driver_id          || null,
+  driver_name:       t.driverName        || `${t.driverFirstName||''} ${t.driverLastName||''}`.trim() || 'Conducteur',
+  driver_avatar:     t.driverAvatar      || (t.driverFirstName?.[0] || '?').toUpperCase(),
+  driver_avatar_url: t.driverAvatarUrl   || t.driver_avatar_url  || null,
+  driver_avatar_color: t.driverColor     || t.driver_avatar_color || '#1A9E8A',
+  driver_rating:     Number(t.driverRating ?? t.driver_rating ?? 0),
+  driver_reviews:    Number(t.driverReviews ?? t.driver_reviews ?? 0),
+  driver_verified:   t.driverVerified    || t.driver_verified    || false,
+})
 
 const PREF_FILTERS = [
   { id:'Climatisé',    icon:'❄️' },
@@ -30,8 +60,6 @@ const PREF_FILTERS = [
   { id:'Non-fumeur',   icon:'🚭' },
   { id:'Chargeur USB', icon:'🔌' },
 ]
-
-
 
 export default function SearchTrips() {
   const [urlParams] = useSearchParams()
@@ -53,7 +81,7 @@ export default function SearchTrips() {
   const [sortBy,      setSortBy]      = useState('departure')
   const [timeSlot,    setTimeSlot]    = useState('all')
   const [activePrefs, setActivePrefs] = useState([])
-  const [panel,       setPanel]       = useState(null) // null | 'search' | 'filters'
+  const [panel,       setPanel]       = useState(null)
 
   const [selected,    setSelected]    = useState(null)
   const [booking,     setBooking]     = useState({})
@@ -69,10 +97,18 @@ export default function SearchTrips() {
       if (p) q.set('passengers', p)
       const res  = await authFetch(`${API_URL}/api/trips/search?${q}`, {})
       const data = await res.json()
-      if (data.success) setTrips(data.trips || [])
-      else setError(data.message || 'Erreur de recherche.')
-    } catch { setError('Impossible de contacter le serveur.') }
-    finally  { setLoading(false) }
+      // Peut être `data.trips`, `data.results` ou un array direct
+      const raw = data.trips || data.results || (Array.isArray(data) ? data : [])
+      setTrips(raw.map(normalizeTrip))
+      if (!data.success && !Array.isArray(data)) {
+        setError(data.message || '')
+      }
+    } catch (err) {
+      console.error('search error:', err)
+      setError('Impossible de contacter le serveur.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { if (from && to) doSearch(from, to, date, pax) }, [])
@@ -80,7 +116,7 @@ export default function SearchTrips() {
   const filtered = trips.filter(t => {
     if (t.price_per_seat > maxPrice) return false
     if (activePrefs.length > 0 && !activePrefs.every(p => t.preferences?.includes(p))) return false
-    if (timeSlot !== 'all') {
+    if (timeSlot !== 'all' && t.departure_time) {
       const h = new Date(t.departure_time).getHours()
       if (timeSlot === 'morning'   && !(h >= 5  && h < 12)) return false
       if (timeSlot === 'afternoon' && !(h >= 12 && h < 18)) return false
@@ -109,7 +145,9 @@ export default function SearchTrips() {
 
   const nbFilters = (maxPrice < 20000 ? 1 : 0) + (timeSlot !== 'all' ? 1 : 0) + activePrefs.length
 
-  // ── MOBILE ──────────────────────────────────────────────────
+  // ── Retour vers accueil simplifié ─────────────────────────
+  const goHome = () => navigate('/')
+
   if (isMobile) return (
     <div style={{ background:'#ECEEF3', minHeight:'100vh', fontFamily:"-apple-system,'SF Pro Display',sans-serif" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} ::-webkit-scrollbar{display:none}`}</style>
@@ -120,12 +158,10 @@ export default function SearchTrips() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header avec retour accueil */}
       <div style={{ background:'#fff', paddingTop:8 }}>
-
-        {/* Retour + résumé cliquable */}
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px 10px' }}>
-          <button onClick={() => navigate(-1)}
+          <button onClick={goHome}
             style={{ background:'none',border:'none',fontSize:26,cursor:'pointer',color:'#111',padding:'0 4px 0 0',lineHeight:1,fontWeight:300 }}>
             ‹
           </button>
@@ -140,7 +176,6 @@ export default function SearchTrips() {
           </button>
         </div>
 
-        {/* Onglets */}
         <div style={{ display:'flex' }}>
           {[
             { label:'Tout',        count: hasSearched ? filtered.length : null },
@@ -163,8 +198,7 @@ export default function SearchTrips() {
         </div>
       </div>
 
-      {/* Filtres rapides */}
-      <div style={{ display:'flex',gap:8,padding:'12px 16px',overflowX:'auto',scrollbarWidth:'none' }}>
+      <div style={{ display:'flex',gap:8,padding:'12px 16px',overflowX:'auto' }}>
         {[
           { action:()=>setPanel('filters'), label:`⚙️ Filtres${nbFilters>0?' ('+nbFilters+')':''}`, active: nbFilters>0 },
           { action:()=>setSortBy('departure'), label:'⏰ Heure',  active: sortBy==='departure' },
@@ -181,9 +215,7 @@ export default function SearchTrips() {
         ))}
       </div>
 
-      {/* Liste résultats */}
       <div style={{ padding:'0 16px 100px' }}>
-
         {loading && (
           <div style={{ textAlign:'center',padding:'56px 0' }}>
             <div style={{ width:32,height:32,borderRadius:'50%',border:'3px solid #E5E7EB',borderTopColor:'#1A9E8A',margin:'0 auto 12px',animation:'spin .8s linear infinite' }}/>
@@ -197,7 +229,6 @@ export default function SearchTrips() {
           <div style={{ textAlign:'center',padding:'72px 0' }}>
             <div style={{ fontSize:52,marginBottom:16 }}>🚗</div>
             <p style={{ fontSize:16,fontWeight:700,color:'#374151' }}>Trouvez votre trajet</p>
-            <p style={{ fontSize:14,color:'#9CA3AF',marginTop:6 }}>Tapez sur la barre de recherche ci-dessus</p>
           </div>
         )}
 
@@ -205,10 +236,7 @@ export default function SearchTrips() {
           <div style={{ textAlign:'center',padding:'60px 0' }}>
             <div style={{ fontSize:48,marginBottom:16 }}>😔</div>
             <p style={{ fontSize:17,fontWeight:800,color:'#111827',margin:'0 0 8px' }}>Aucun trajet disponible</p>
-            <p style={{ fontSize:14,color:'#9CA3AF',margin:'0 0 28px' }}>Essayez une autre date</p>
-            <button style={{ padding:'13px 32px',borderRadius:30,border:'2px solid #1A9E8A',background:'transparent',color:'#1A9E8A',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
-              🔔 Créer une alerte
-            </button>
+            <p style={{ fontSize:14,color:'#9CA3AF' }}>Essayez une autre date</p>
           </div>
         )}
 
@@ -223,14 +251,6 @@ export default function SearchTrips() {
             onSelect={()=>setSelected(selected===trip.id?null:trip.id)}
             onBook={()=>handleBook(trip.id)} user={user} navigate={navigate}/>
         ))}
-
-        {!loading && hasSearched && filtered.length > 0 && (
-          <div style={{ textAlign:'center',padding:'16px 0 8px' }}>
-            <button style={{ padding:'14px 40px',borderRadius:30,border:'1.5px solid #D1D5DB',background:'#fff',color:'#1A9E8A',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
-              🔔 Créer une alerte
-            </button>
-          </div>
-        )}
       </div>
 
       {panel === 'search' && (
@@ -248,77 +268,59 @@ export default function SearchTrips() {
     </div>
   )
 
-  // ── DESKTOP ──────────────────────────────────────────────────
+  // DESKTOP
   return (
     <div style={{ background:'#F7F5F2',minHeight:'calc(100vh - 72px)',fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
       {bookMsg && <div style={{ position:'fixed',top:80,left:'50%',transform:'translateX(-50%)',background:'#1A9E8A',color:'#fff',padding:'12px 24px',borderRadius:12,fontWeight:700,zIndex:9999 }}>{bookMsg}</div>}
       <div style={{ background:'#fff',padding:'20px',borderBottom:'1px solid #E5E7EB',display:'flex',gap:12,flexWrap:'wrap',alignItems:'center' }}>
-        <select value={from} onChange={e=>setFrom(e.target.value)} style={{ flex:1,minWidth:140,padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}>
+        <button onClick={goHome} style={{ background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#374151',padding:'0 4px' }}>‹</button>
+        <select value={from} onChange={e=>setFrom(e.target.value)} style={{ flex:1,minWidth:140,padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14 }}>
           <option value="">Départ</option>{MAJOR_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={to} onChange={e=>setTo(e.target.value)} style={{ flex:1,minWidth:140,padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}>
+        <select value={to} onChange={e=>setTo(e.target.value)} style={{ flex:1,minWidth:140,padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14 }}>
           <option value="">Destination</option>{MAJOR_CITIES.filter(c=>c!==from).map(c=><option key={c} value={c}>{c}</option>)}
         </select>
-        <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}/>
-        <select value={pax} onChange={e=>setPax(e.target.value)} style={{ padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,fontFamily:'inherit' }}>
+        <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14 }}/>
+        <select value={pax} onChange={e=>setPax(e.target.value)} style={{ padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14 }}>
           {[1,2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} passager{n>1?'s':''}</option>)}
         </select>
-        <button onClick={()=>doSearch(from,to,date,pax)} style={{ padding:'10px 28px',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',border:'none',borderRadius:10,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit' }}>Rechercher</button>
+        <button onClick={()=>doSearch(from,to,date,pax)} style={{ padding:'10px 28px',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',border:'none',borderRadius:10,fontSize:14,fontWeight:800,cursor:'pointer' }}>Rechercher</button>
       </div>
-      <div style={{ display:'flex',maxWidth:1200,margin:'0 auto',padding:'20px',gap:24 }}>
-        <aside style={{ width:260,flexShrink:0 }}>
-          <div style={{ background:'#fff',borderRadius:16,padding:'20px',border:'1px solid #E5E7EB' }}>
-            <h3 style={{ fontSize:15,fontWeight:800,margin:'0 0 16px' }}>Filtres</h3>
-            <div style={{ marginBottom:16 }}>
-              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 8px' }}>Prix max</p>
-              <input type="range" min={1000} max={20000} step={500} value={maxPrice} onChange={e=>setMaxPrice(+e.target.value)} style={{ width:'100%',accentColor:'#1A9E8A' }}/>
-              <p style={{ fontSize:12,color:'#1A9E8A',fontWeight:700,margin:'4px 0 0' }}>{fmtFCFA(maxPrice)}</p>
-            </div>
-            <div style={{ marginBottom:16 }}>
-              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 8px' }}>Heure de départ</p>
-              <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-                {[{v:'all',l:'Toutes'},{v:'morning',l:'Matin (5h-12h)'},{v:'afternoon',l:'Après-midi'},{v:'evening',l:'Soir (18h+)'}].map(s=>(
-                  <button key={s.v} onClick={()=>setTimeSlot(s.v)} style={{ textAlign:'left',padding:'8px 12px',borderRadius:8,border:timeSlot===s.v?'2px solid #1A9E8A':'1px solid #E5E7EB',background:timeSlot===s.v?'#E8F7F4':'transparent',color:timeSlot===s.v?'#1A9E8A':'#374151',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>{s.l}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 8px' }}>Préférences</p>
-              <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
-                {PREF_FILTERS.map(p=>(
-                  <button key={p.id} onClick={()=>setActivePrefs(a=>a.includes(p.id)?a.filter(x=>x!==p.id):[...a,p.id])} style={{ padding:'6px 10px',borderRadius:20,border:activePrefs.includes(p.id)?'2px solid #1A9E8A':'1px solid #E5E7EB',background:activePrefs.includes(p.id)?'#E8F7F4':'transparent',color:activePrefs.includes(p.id)?'#1A9E8A':'#374151',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>{p.icon} {p.id}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </aside>
-        <div style={{ flex:1,minWidth:0 }}>
-          {loading && <div style={{ textAlign:'center',padding:40 }}>⏳ Recherche…</div>}
-          {error && <div style={{ background:'#FEF2F2',borderRadius:12,padding:16,color:'#DC2626' }}>⚠️ {error}</div>}
-          {hasSearched && !loading && filtered.length===0 && <div style={{ textAlign:'center',padding:60 }}><div style={{ fontSize:48,marginBottom:16 }}>🔍</div><p style={{ fontSize:18,fontWeight:700,color:'#374151' }}>Aucun trajet trouvé</p></div>}
-          {filtered.map(trip=>(
-            <DesktopCard key={trip.id} trip={trip} selected={selected===trip.id} booked={!!booking[trip.id]}
-              onSelect={()=>setSelected(selected===trip.id?null:trip.id)} onBook={()=>handleBook(trip.id)} user={user} navigate={navigate}/>
-          ))}
-        </div>
+      <div style={{ maxWidth:900,margin:'0 auto',padding:'20px' }}>
+        {loading && <div style={{ textAlign:'center',padding:40 }}>⏳ Recherche…</div>}
+        {error && <div style={{ background:'#FEF2F2',borderRadius:12,padding:16,color:'#DC2626' }}>⚠️ {error}</div>}
+        {filtered.map(trip=>(
+          <BlaCard key={trip.id} trip={trip} selected={selected===trip.id} booked={!!booking[trip.id]}
+            onSelect={()=>setSelected(selected===trip.id?null:trip.id)} onBook={()=>handleBook(trip.id)} user={user} navigate={navigate}/>
+        ))}
       </div>
     </div>
   )
 }
 
-// ════════════════════════════════════════════════════════════
-//  BlaCard — Carte style BlaBlaCar (mobile)
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  BlaCard — Carte trajet style BlaBlaCar
+// ═══════════════════════════════════════════════════════════════
 function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
   const depTime = trip.departure_time ? new Date(trip.departure_time) : null
-  const arrTime = trip.arrival_time   ? new Date(trip.arrival_time)   : null
+  const validDep = depTime && !isNaN(depTime)
 
-  const diffMs  = depTime && arrTime ? arrTime - depTime : null
-  const diffH   = diffMs ? Math.floor(diffMs/3600000) : null
-  const diffM   = diffMs ? Math.floor((diffMs%3600000)/60000) : null
-  const duree   = diffH !== null ? `${diffH}h${diffM>0?diffM.toString().padStart(2,'0'):''}` : ''
+  // Calculer heure arrivée depuis durée si arrivée pas fournie
+  let arrTime = null
+  if (trip.arrival_time) {
+    const a = new Date(trip.arrival_time)
+    if (!isNaN(a)) arrTime = a
+  } else if (validDep && trip.duration) {
+    // duration "2h00" → heure arrivée
+    const m = trip.duration.match(/(\d+)h(\d+)?/)
+    if (m) {
+      const h = parseInt(m[1]), min = parseInt(m[2] || 0)
+      arrTime = new Date(depTime.getTime() + (h * 3600 + min * 60) * 1000)
+    }
+  }
 
-  const isNight = depTime && (depTime.getHours() >= 20 || depTime.getHours() < 6)
+  const isNight = validDep && (depTime.getHours() >= 20 || depTime.getHours() < 6)
+  const price   = Number(trip.price_per_seat) || 0
 
   return (
     <div onClick={onSelect} style={{
@@ -327,45 +329,41 @@ function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
       overflow:'hidden', cursor:'pointer',
       boxShadow: selected ? '0 4px 20px rgba(26,158,138,.1)' : '0 1px 6px rgba(0,0,0,.06)',
     }}>
-
-      {/* Zone principale trajet */}
       <div style={{ padding:'18px 18px 14px' }}>
-
-        {/* Ligne départ */}
         <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
 
-          {/* Timeline + heures */}
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:0, flexShrink:0, minWidth:52 }}>
+          {/* Heures */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:0, flexShrink:0, minWidth:56 }}>
             <span style={{ fontSize:17, fontWeight:800, color:'#111827', lineHeight:1 }}>
-              {depTime ? fmt(trip.departure_time) : '--:--'}
+              {fmtTime(trip.departure_time)}
             </span>
-            {duree && (
-              <span style={{ fontSize:11, color:'#9CA3AF', marginTop:2 }}>
-                {duree}{isNight ? ' 🌙' : ''}
+            {trip.duration && (
+              <span style={{ fontSize:11, color:'#9CA3AF', marginTop:4 }}>
+                {trip.duration}{isNight ? ' 🌙' : ''}
               </span>
             )}
             {arrTime && (
-              <span style={{ fontSize:17, fontWeight:800, color:'#111827', marginTop: duree ? 18 : 24, lineHeight:1 }}>
-                {fmt(trip.arrival_time)}
+              <span style={{ fontSize:17, fontWeight:800, color:'#111827', marginTop: trip.duration ? 22 : 30, lineHeight:1 }}>
+                {fmtTime(arrTime.toISOString())}
               </span>
             )}
           </div>
 
-          {/* Timeline dots */}
+          {/* Timeline */}
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:3, flexShrink:0 }}>
             <div style={{ width:10, height:10, borderRadius:'50%', border:'2px solid #374151', background:'#fff' }}/>
-            <div style={{ width:2, height: arrTime ? 36 : 20, background:'#D1D5DB', margin:'3px 0' }}/>
+            <div style={{ width:2, height: arrTime ? 40 : 20, background:'#D1D5DB', margin:'3px 0' }}/>
             {arrTime && <div style={{ width:10, height:10, borderRadius:'50%', border:'2px solid #374151', background:'#fff' }}/>}
           </div>
 
           {/* Villes */}
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'#111827', lineHeight:1, paddingTop:1 }}>
-              {trip.origin_city}
+            <div style={{ fontSize:16, fontWeight:700, color:'#111827', lineHeight:1, paddingTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {trip.origin_city || '—'}
             </div>
             {arrTime && (
-              <div style={{ fontSize:16, fontWeight:700, color:'#111827', marginTop: 32, lineHeight:1 }}>
-                {trip.destination_city}
+              <div style={{ fontSize:16, fontWeight:700, color:'#111827', marginTop:36, lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {trip.destination_city || '—'}
               </div>
             )}
           </div>
@@ -373,49 +371,41 @@ function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
           {/* Prix */}
           <div style={{ flexShrink:0, textAlign:'right' }}>
             <span style={{ fontSize:22, fontWeight:900, color:'#111827', letterSpacing:'-.03em' }}>
-              {Number(trip.price_per_seat).toLocaleString('fr-FR')}
+              {price.toLocaleString('fr-FR')}
             </span>
             <span style={{ fontSize:13, fontWeight:700, color:'#111827' }}> FCFA</span>
           </div>
         </div>
       </div>
 
-      {/* Séparateur */}
       <div style={{ height:1, background:'#F3F4F6', margin:'0 18px' }}/>
 
       {/* Conducteur */}
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 18px' }}>
-        {/* Icône voiture */}
         <span style={{ fontSize:18, color:'#9CA3AF' }}>🚗</span>
-
-        {/* Avatar */}
         {trip.driver_avatar_url ? (
-          <img src={trip.driver_avatar_url} alt="" style={{ width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid #E5E7EB' }}/>
+          <img src={trip.driver_avatar_url} alt="" onError={e=>{e.target.style.display='none'}}
+            style={{ width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid #E5E7EB' }}/>
         ) : (
-          <div style={{ width:36,height:36,borderRadius:'50%',background:trip.driver_avatar_color||'#1A9E8A',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:15,color:'#fff',flexShrink:0 }}>
-            {(trip.driver_name||'?')[0].toUpperCase()}
+          <div style={{ width:36,height:36,borderRadius:'50%',background:trip.driver_avatar_color,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:15,color:'#fff',flexShrink:0 }}>
+            {trip.driver_avatar}
           </div>
         )}
-
-        {/* Nom + étoiles */}
         <div style={{ flex:1,minWidth:0 }}>
           <div style={{ fontSize:14,fontWeight:700,color:'#111827' }}>{trip.driver_name}</div>
           <div style={{ display:'flex',alignItems:'center',gap:6,marginTop:2 }}>
-            <span style={{ fontSize:12,color:'#F59E0B',letterSpacing:1 }}>★ {parseFloat(trip.driver_rating||0).toFixed(1)}</span>
-            {parseFloat(trip.driver_rating||0) >= 4.8 && (
-              <span style={{ background:'#EEF2FF',color:'#4F46E5',fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10 }}>Super Conducteur</span>
+            <span style={{ fontSize:12,color:'#F59E0B' }}>★ {trip.driver_rating.toFixed(1)}</span>
+            {trip.driver_verified && (
+              <span style={{ background:'#EEF2FF',color:'#4F46E5',fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10 }}>Vérifié</span>
             )}
           </div>
         </div>
-
-        {/* Places */}
         <div style={{ flexShrink:0,display:'flex',alignItems:'center',gap:4,color:'#9CA3AF' }}>
-          {'👤'.repeat(Math.min(trip.available_seats||0, 3))}
-          {(trip.available_seats||0) > 3 && <span style={{ fontSize:11,fontWeight:700 }}>+{trip.available_seats-3}</span>}
+          {'👤'.repeat(Math.min(trip.available_seats, 3))}
+          {trip.available_seats > 3 && <span style={{ fontSize:11,fontWeight:700 }}>+{trip.available_seats-3}</span>}
         </div>
       </div>
 
-      {/* Actions — visibles si sélectionné */}
       {selected && (
         <div style={{ borderTop:'1px solid #F3F4F6',padding:'12px 18px',display:'flex',gap:10 }}>
           <button
@@ -434,41 +424,9 @@ function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
   )
 }
 
-// ── Desktop Card ─────────────────────────────────────────────
-function DesktopCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
-  return (
-    <div onClick={onSelect} style={{ background:'#fff',borderRadius:16,marginBottom:12,border:selected?'2px solid #1A9E8A':'1px solid #E5E7EB',padding:'18px 20px',cursor:'pointer',boxShadow:selected?'0 4px 16px rgba(26,158,138,.1)':'0 1px 4px rgba(0,0,0,.04)' }}>
-      <div style={{ display:'flex',alignItems:'center',gap:16 }}>
-        <div>
-          <div style={{ fontSize:20,fontWeight:900,color:'#111' }}>{fmt(trip.departure_time)}</div>
-          <div style={{ fontSize:13,color:'#9CA3AF',marginTop:2 }}>{fmtDate(trip.departure_time)}</div>
-        </div>
-        <div style={{ flex:1,textAlign:'center' }}>
-          <div style={{ fontSize:13,fontWeight:700,color:'#111' }}>{trip.origin_city} → {trip.destination_city}</div>
-          <div style={{ fontSize:12,color:'#9CA3AF',marginTop:2 }}>★ {parseFloat(trip.driver_rating||0).toFixed(1)} · {trip.driver_name}</div>
-        </div>
-        <div>
-          <div style={{ fontSize:20,fontWeight:900,color:'#1A9E8A' }}>{Number(trip.price_per_seat).toLocaleString('fr-FR')} FCFA</div>
-          <div style={{ fontSize:12,color:'#9CA3AF',marginTop:2,textAlign:'right' }}>{trip.available_seats} place{trip.available_seats>1?'s':''}</div>
-        </div>
-      </div>
-      {selected && (
-        <div style={{ marginTop:14,display:'flex',gap:10,borderTop:'1px solid #F3F4F6',paddingTop:14 }}>
-          <button onClick={e=>{e.stopPropagation();if(!user){navigate('/login')}else{onBook()}}} disabled={booked||!trip.available_seats}
-            style={{ flex:1,padding:'11px',border:'none',borderRadius:10,background:booked?'#9CA3AF':'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit' }}>
-            {booked?'✓ Envoyée':'Réserver'}
-          </button>
-          <Link to={user?`/messages?trip=${trip.id}`:'/login'} onClick={e=>e.stopPropagation()}
-            style={{ padding:'11px 18px',border:'1.5px solid #E5E7EB',borderRadius:10,color:'#374151',textDecoration:'none',display:'flex',alignItems:'center' }}>
-            💬
-          </Link>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── SearchSheet ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  SearchSheet
+// ═══════════════════════════════════════════════════════════════
 function SearchSheet({ from, setFrom, to, setTo, date, setDate, pax, setPax, onSearch, onClose }) {
   const today = new Date().toISOString().split('T')[0]
   return (
@@ -489,9 +447,9 @@ function SearchSheet({ from, setFrom, to, setTo, date, setDate, pax, setPax, onS
           ].map(f => (
             <div key={f.label}>
               <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 6px' }}>{f.label}</p>
-              <select value={f.value} onChange={e=>f.set(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none',color:f.value?'#111827':'#9CA3AF' }}>
+              <select value={f.value} onChange={e=>f.set(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none',color:f.value?'#111827':'#9CA3AF',boxSizing:'border-box' }}>
                 <option value="">{f.label}</option>
-                {['Douala','Yaoundé','Bafoussam','Bamenda','Garoua','Maroua','Ngaoundéré','Bertoua','Kumba','Limbe','Kribi'].filter(c=>c!==f.exclude).map(c=><option key={c} value={c}>{c}</option>)}
+                {MAJOR_CITIES.filter(c=>c!==f.exclude).map(c=><option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           ))}
@@ -501,7 +459,7 @@ function SearchSheet({ from, setFrom, to, setTo, date, setDate, pax, setPax, onS
           </div>
           <div>
             <p style={{ fontSize:13,fontWeight:700,color:'#6B7280',margin:'0 0 6px' }}>Passagers</p>
-            <select value={pax} onChange={e=>setPax(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none' }}>
+            <select value={pax} onChange={e=>setPax(e.target.value)} style={{ width:'100%',padding:'13px 14px',border:'1.5px solid #E5E7EB',borderRadius:12,fontSize:15,fontFamily:'inherit',outline:'none',boxSizing:'border-box' }}>
               {[1,2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} adulte{n>1?'s':''}</option>)}
             </select>
           </div>
@@ -514,7 +472,9 @@ function SearchSheet({ from, setFrom, to, setTo, date, setDate, pax, setPax, onS
   )
 }
 
-// ── FiltersSheet ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  FiltersSheet
+// ═══════════════════════════════════════════════════════════════
 function FiltersSheet({ maxPrice, setMaxPrice, timeSlot, setTimeSlot, activePrefs, setActivePrefs, onClose }) {
   return (
     <>
@@ -528,20 +488,17 @@ function FiltersSheet({ maxPrice, setMaxPrice, timeSlot, setTimeSlot, activePref
           <button onClick={onClose} style={{ background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#9CA3AF' }}>✕</button>
         </div>
         <div style={{ marginBottom:28 }}>
-          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10 }}>
+          <div style={{ display:'flex',justifyContent:'space-between',marginBottom:10 }}>
             <p style={{ fontSize:15,fontWeight:800,color:'#111827',margin:0 }}>Prix maximum</p>
             <span style={{ fontSize:14,fontWeight:800,color:'#1A9E8A' }}>{Number(maxPrice).toLocaleString('fr-FR')} FCFA</span>
           </div>
-          <input type="range" min={1000} max={20000} step={500} value={maxPrice} onChange={e=>setMaxPrice(+e.target.value)} style={{ width:'100%',accentColor:'#1A9E8A',height:6 }}/>
-          <div style={{ display:'flex',justifyContent:'space-between',fontSize:11,color:'#9CA3AF',marginTop:4 }}>
-            <span>1 000 FCFA</span><span>20 000 FCFA</span>
-          </div>
+          <input type="range" min={1000} max={20000} step={500} value={maxPrice} onChange={e=>setMaxPrice(+e.target.value)} style={{ width:'100%',accentColor:'#1A9E8A' }}/>
         </div>
         <div style={{ marginBottom:28 }}>
           <p style={{ fontSize:15,fontWeight:800,color:'#111827',margin:'0 0 12px' }}>Heure de départ</p>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
             {[{v:'all',l:'Toutes',i:'🕐'},{v:'morning',l:'Matin',i:'🌅'},{v:'afternoon',l:'Après-midi',i:'☀️'},{v:'evening',l:'Soir',i:'🌙'}].map(s=>(
-              <button key={s.v} onClick={()=>setTimeSlot(s.v)} style={{ padding:'12px',borderRadius:14,border:timeSlot===s.v?'2px solid #111827':'1.5px solid #E5E7EB',background:timeSlot===s.v?'#F3F4F6':'#F7F8FA',color:'#111827',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'center' }}>
+              <button key={s.v} onClick={()=>setTimeSlot(s.v)} style={{ padding:'12px',borderRadius:14,border:timeSlot===s.v?'2px solid #111827':'1.5px solid #E5E7EB',background:timeSlot===s.v?'#F3F4F6':'#F7F8FA',color:'#111827',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
                 {s.i} {s.l}
               </button>
             ))}
@@ -551,13 +508,13 @@ function FiltersSheet({ maxPrice, setMaxPrice, timeSlot, setTimeSlot, activePref
           <p style={{ fontSize:15,fontWeight:800,color:'#111827',margin:'0 0 12px' }}>Préférences</p>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
             {PREF_FILTERS.map(p=>(
-              <button key={p.id} onClick={()=>setActivePrefs(a=>a.includes(p.id)?a.filter(x=>x!==p.id):[...a,p.id])} style={{ padding:'12px',borderRadius:14,border:activePrefs.includes(p.id)?'2px solid #1A9E8A':'1.5px solid #E5E7EB',background:activePrefs.includes(p.id)?'#E8F7F4':'#F7F8FA',color:activePrefs.includes(p.id)?'#1A9E8A':'#374151',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'center' }}>
+              <button key={p.id} onClick={()=>setActivePrefs(a=>a.includes(p.id)?a.filter(x=>x!==p.id):[...a,p.id])} style={{ padding:'12px',borderRadius:14,border:activePrefs.includes(p.id)?'2px solid #1A9E8A':'1.5px solid #E5E7EB',background:activePrefs.includes(p.id)?'#E8F7F4':'#F7F8FA',color:activePrefs.includes(p.id)?'#1A9E8A':'#374151',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
                 {p.icon} {p.id}
               </button>
             ))}
           </div>
         </div>
-        <button onClick={onClose} style={{ width:'100%',padding:'16px',border:'none',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',borderRadius:16,fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit' }}>
+        <button onClick={onClose} style={{ width:'100%',padding:'16px',border:'none',background:'linear-gradient(135deg,#1A9E8A,#22C6AD)',color:'#fff',borderRadius:16,fontSize:16,fontWeight:800,cursor:'pointer' }}>
           Appliquer
         </button>
       </div>
