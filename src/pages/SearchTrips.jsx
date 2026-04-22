@@ -5,7 +5,6 @@ import { useMobile } from '../hooks/useMobile'
 import { API_URL, authFetch } from '../utils/api'
 import { POPULAR_ROUTES, MAJOR_CITIES } from '../data/cameroun'
 import TripMapEmbed from '../components/TripMapEmbed'
-import { MAJOR_CITIES } from '../data/cameroun'
 
 // ─── helpers ────────────────────────────────────────────────
 const fmtTime = (iso) => {
