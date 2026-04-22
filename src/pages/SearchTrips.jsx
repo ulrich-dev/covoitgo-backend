@@ -3,6 +3,8 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useMobile } from '../hooks/useMobile'
 import { API_URL, authFetch } from '../utils/api'
+import { POPULAR_ROUTES, MAJOR_CITIES } from '../data/cameroun'
+import TripMapEmbed from '../components/TripMapEmbed'
 import { MAJOR_CITIES } from '../data/cameroun'
 
 // ─── helpers ────────────────────────────────────────────────
@@ -450,21 +452,30 @@ function BlaCard({ trip, selected, booked, onSelect, onBook, user, navigate }) {
 
       {/* Actions si sélectionné */}
       {selected&&(
-        <div style={{borderTop:'1px solid #F3F4F6',padding:'14px 20px',display:'flex',gap:10}}>
-          <button
-            onClick={e=>{e.stopPropagation();if(!user){navigate('/login')}else{onBook()}}}
-            disabled={booked||!trip.available_seats}
-            style={{flex:1,padding:'13px',border:'none',borderRadius:14,
-              background:booked?'#9CA3AF':!trip.available_seats?'#E5E7EB':'linear-gradient(135deg,#1A9E8A,#22C6AD)',
-              color:'#fff',fontSize:15,fontWeight:800,
-              cursor:booked||!trip.available_seats?'not-allowed':'pointer',fontFamily:'inherit'}}>
-            {booked?'✓ Demande envoyée':!trip.available_seats?'Complet':'Réserver ce trajet'}
-          </button>
-          <Link to={user?`/messages?trip=${trip.id}`:'/login'} onClick={e=>e.stopPropagation()}
-            style={{padding:'13px 18px',border:'1.5px solid #E5E7EB',borderRadius:14,fontSize:18,color:'#374151',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            💬
-          </Link>
-        </div>
+        <>
+          {/* Carte du trajet */}
+          <TripMapEmbed
+            origin={trip.origin_city ? { name:trip.origin_city, lat:null, lon:null } : null}
+            destination={trip.destination_city ? { name:trip.destination_city, lat:null, lon:null } : null}
+            height={200}
+            showRoute={false}
+          />
+          <div style={{borderTop:'1px solid #F3F4F6',padding:'14px 20px',display:'flex',gap:10}}>
+            <button
+              onClick={e=>{e.stopPropagation();if(!user){navigate('/login')}else{onBook()}}}
+              disabled={booked||!trip.available_seats}
+              style={{flex:1,padding:'13px',border:'none',borderRadius:14,
+                background:booked?'#9CA3AF':!trip.available_seats?'#E5E7EB':'linear-gradient(135deg,#1A9E8A,#22C6AD)',
+                color:'#fff',fontSize:15,fontWeight:800,
+                cursor:booked||!trip.available_seats?'not-allowed':'pointer',fontFamily:'inherit'}}>
+              {booked?'✓ Demande envoyée':!trip.available_seats?'Complet':'Réserver ce trajet'}
+            </button>
+            <Link to={user?`/messages?trip=${trip.id}`:'/login'} onClick={e=>e.stopPropagation()}
+              style={{padding:'13px 18px',border:'1.5px solid #E5E7EB',borderRadius:14,fontSize:18,color:'#374151',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              💬
+            </Link>
+          </div>
+        </>
       )}
     </div>
   )
