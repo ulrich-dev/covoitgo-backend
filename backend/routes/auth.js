@@ -49,7 +49,7 @@ router.post('/register',
       const avatarColor = colors[Math.floor(Math.random() * colors.length)]
       const verifyToken   = makeToken()
       const verifyExpires = new Date(Date.now() + 24*3600*1000)
-      const language      = req.body.language || 'en'  // langue choisie à l'inscription
+      const language      = req.body.language || 'en'
 
       await queryOne(
         `INSERT INTO users (email,password_hash,first_name,last_name,birth_date,phone,role,bio,avatar_color,language,email_verified,verify_token,verify_token_expires)
@@ -59,7 +59,6 @@ router.post('/register',
 
       sendVerificationEmail({ email, firstName, token: verifyToken, lang: language }).catch(console.error)
 
-      // Générer un JWT temporaire pour l'étape véhicule (sans vérif email)
       const newUser = await queryOne('SELECT * FROM users WHERE email=$1', [email])
       const tempToken = newUser ? generateToken(newUser) : null
 
@@ -68,7 +67,7 @@ router.post('/register',
         message: 'Compte créé ! Vérifiez votre email pour activer votre compte.',
         needsVerification: true,
         email,
-        token: tempToken,  // ← JWT pour l'étape véhicule
+        token: tempToken,
       })
 
     } catch (error) {
@@ -160,7 +159,6 @@ router.post('/login',
       const ok = await bcrypt.compare(password, user.password_hash)
       if (!ok) return res.status(401).json({ success:false, message:'Email ou mot de passe incorrect.' })
 
-      // Bloque si email non vérifié
       if (!user.email_verified) {
         return res.status(403).json({ success:false, message:'Veuillez vérifier votre email avant de vous connecter.', needsVerification:true, email:user.email })
       }
@@ -183,7 +181,7 @@ router.post('/login',
 
           res.json({
             success:true, message:'Connexion réussie !',
-            token,   // ← JWT pour le frontend cross-domain
+            token,
             user: { id:user.id, email:user.email, firstName:user.first_name, lastName:user.last_name,
               name:`${user.first_name} ${user.last_name}`, avatar:user.first_name[0].toUpperCase(),
               avatarUrl:user.avatar_url||null,
@@ -213,15 +211,12 @@ router.post('/logout', (req, res) => {
 
 // ══════════════════════════════════════════════
 //  POST /api/auth/oauth-session
-//  Valider une session OAuth cross-domain (Vercel ↔ Railway)
-//  Le frontend envoie le sid reçu dans l'URL après OAuth
 // ══════════════════════════════════════════════
 router.post('/oauth-session', async (req, res) => {
   try {
     const { sid } = req.body
     if (!sid) return res.status(400).json({ success: false, message: 'sid manquant.' })
 
-    // Charger la session depuis la base
     const sessionRow = await queryOne(
       `SELECT sess FROM session WHERE sid = $1 AND expire > NOW()`,
       [sid]
@@ -233,7 +228,6 @@ router.post('/oauth-session', async (req, res) => {
 
     if (!userId) return res.status(401).json({ success: false, message: 'Session invalide.' })
 
-    // Créer une nouvelle session pour ce navigateur
     req.session.regenerate((err) => {
       if (err) return res.status(500).json({ success: false, message: 'Erreur session.' })
       req.session.userId    = userId
@@ -247,7 +241,6 @@ router.post('/oauth-session', async (req, res) => {
         )
         if (!user) return res.status(401).json({ success: false, message: 'Utilisateur introuvable.' })
 
-        // Générer un JWT pour le cross-domain
         const token = generateToken(user)
 
         res.json({ success: true, token, user: {
@@ -286,11 +279,10 @@ router.get('/me', requireAuth, async (req, res) => {
     )
     if (!user) return res.status(401).json({ success:false, message:'Session expirée.' })
 
-    // Renouveler le token JWT à chaque appel /me
     const freshToken = generateToken(user)
 
     res.json({ success:true,
-      token: freshToken,  // ← token frais pour le frontend
+      token: freshToken,
       user: {
         id:user.id, email:user.email, firstName:user.first_name, lastName:user.last_name,
         name:`${user.first_name} ${user.last_name}`, phone:user.phone,
@@ -319,13 +311,12 @@ router.post('/forgot-password', [body('email').isEmail().normalizeEmail()], asyn
       [email]
     )
 
-    // Réponse générique pour ne pas révéler si l'email existe
     if (!user) {
       return res.json({ success:true, message:'Si ce compte existe, un email de réinitialisation a été envoyé.' })
     }
 
     const token   = makeToken()
-    const expires = new Date(Date.now() + 3600*1000) // 1h
+    const expires = new Date(Date.now() + 3600*1000)
     await query('UPDATE users SET reset_token=$1,reset_token_expires=$2 WHERE id=$3', [token, expires, user.id])
     await sendPasswordResetEmail({
       email,
@@ -342,7 +333,7 @@ router.post('/forgot-password', [body('email').isEmail().normalizeEmail()], asyn
 })
 
 // ══════════════════════════════════════════════
-//  GET /api/auth/check-reset-token?token=xxx
+//  GET /api/auth/check-reset-token
 // ══════════════════════════════════════════════
 router.get('/check-reset-token', async (req, res) => {
   try {
@@ -380,8 +371,6 @@ router.post('/reset-password',
 
       const passwordHash = await bcrypt.hash(password, 10)
       await query('UPDATE users SET password_hash=$1,reset_token=NULL,reset_token_expires=NULL WHERE id=$2', [passwordHash, user.id])
-
-      // Invalide toutes les sessions existantes
       await query(`DELETE FROM session WHERE sess::text LIKE $1`, [`%${user.id}%`]).catch(()=>{})
 
       res.json({ success:true, message:'Mot de passe mis à jour ! Vous pouvez vous connecter.' })
@@ -393,7 +382,7 @@ router.post('/reset-password',
 )
 
 // ══════════════════════════════════════════════
-//  PATCH /api/auth/profile — Modifier son profil
+//  PATCH /api/auth/profile
 // ══════════════════════════════════════════════
 router.patch('/profile', requireAuth,
   [
@@ -436,7 +425,36 @@ router.patch('/profile', requireAuth,
 )
 
 // ══════════════════════════════════════════════
-//  POST /api/auth/avatar — Upload photo de profil
+//  PATCH /api/auth/password — Changer mot de passe
+// ══════════════════════════════════════════════
+router.patch('/password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body
+    const userId = req.session.userId
+
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ success:false, message:'Mots de passe requis' })
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword))
+      return res.status(400).json({ success:false, message:'Mot de passe trop faible (8 car. min, 1 majuscule, 1 chiffre)' })
+
+    const user = await queryOne('SELECT id, password_hash FROM users WHERE id=$1', [userId])
+    if (!user) return res.status(404).json({ success:false, message:'Utilisateur introuvable' })
+
+    const valid = await bcrypt.compare(currentPassword, user.password_hash)
+    if (!valid) return res.status(401).json({ success:false, message:'Mot de passe actuel incorrect' })
+
+    const newHash = await bcrypt.hash(newPassword, 10)
+    await query('UPDATE users SET password_hash=$1 WHERE id=$2', [newHash, userId])
+
+    res.json({ success:true, message:'Mot de passe modifié avec succès' })
+  } catch (err) {
+    console.error('password change:', err)
+    res.status(500).json({ success:false, message:'Erreur serveur' })
+  }
+})
+
+// ══════════════════════════════════════════════
+//  POST /api/auth/avatar
 // ══════════════════════════════════════════════
 const multer = require('multer')
 const path   = require('path')
@@ -455,7 +473,7 @@ const avatarStorage = multer.diskStorage({
 
 const avatarUpload = multer({
   storage: avatarStorage,
-  limits:  { fileSize: 5 * 1024 * 1024, files: 1 }, // 5 Mo max
+  limits:  { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     const allowed = ['image/jpeg','image/png','image/webp','image/gif']
     if (!allowed.includes(file.mimetype))
@@ -466,131 +484,135 @@ const avatarUpload = multer({
 
 router.post('/avatar', requireAuth, (req, res) => {
   avatarUpload.single('avatar')(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({
-        success: false,
-        message: err.message || 'Erreur lors de l\'upload.',
-      })
-    }
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Aucun fichier reçu.' })
-    }
+    if (err) return res.status(400).json({ success:false, message:err.message || 'Erreur upload.' })
+    if (!req.file) return res.status(400).json({ success:false, message:'Aucun fichier reçu.' })
 
     try {
-      const userId   = req.session.userId
+      const userId    = req.session.userId
       const avatarUrl = `/uploads/avatars/${req.file.filename}`
 
-      // Supprimer l'ancienne photo si elle existe (sauf si URL externe OAuth)
-      const old = await queryOne(`SELECT avatar_url FROM users WHERE id = $1`, [userId])
+      const old = await queryOne(`SELECT avatar_url FROM users WHERE id=$1`, [userId])
       if (old?.avatar_url && old.avatar_url.startsWith('/uploads/avatars/')) {
         const oldPath = path.join(__dirname, '..', old.avatar_url)
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
       }
 
-      await queryOne(
-        `UPDATE users SET avatar_url = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
-        [avatarUrl, userId]
-      )
-
-      res.json({ success: true, avatarUrl })
+      await queryOne(`UPDATE users SET avatar_url=$1, updated_at=NOW() WHERE id=$2 RETURNING id`, [avatarUrl, userId])
+      res.json({ success:true, avatarUrl })
     } catch (err) {
       console.error('POST /auth/avatar:', err)
-      res.status(500).json({ success: false, message: 'Erreur serveur.' })
+      res.status(500).json({ success:false, message:'Erreur serveur.' })
     }
   })
 })
 
-// ── Servir les avatars ──────────────────────────────────────────
 router.get('/avatar/:filename', (req, res) => {
   const filePath = path.join(__dirname, '..', 'uploads', 'avatars', req.params.filename)
-  if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'Non trouvé.' })
+  if (!fs.existsSync(filePath)) return res.status(404).json({ message:'Non trouvé.' })
   res.sendFile(filePath)
 })
 
-// ══════════════════════════════════════════════
-//  DELETE /api/auth/avatar — Supprimer la photo
-// ══════════════════════════════════════════════
 router.delete('/avatar', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId
-    const user   = await queryOne(`SELECT avatar_url FROM users WHERE id = $1`, [userId])
+    const user   = await queryOne(`SELECT avatar_url FROM users WHERE id=$1`, [userId])
 
     if (user?.avatar_url && user.avatar_url.startsWith('/uploads/avatars/')) {
       const filePath = path.join(__dirname, '..', user.avatar_url)
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
     }
 
-    await queryOne(`UPDATE users SET avatar_url = NULL, updated_at = NOW() WHERE id = $1`, [userId])
-    res.json({ success: true })
+    await queryOne(`UPDATE users SET avatar_url=NULL, updated_at=NOW() WHERE id=$1`, [userId])
+    res.json({ success:true })
   } catch (err) {
     console.error('DELETE /auth/avatar:', err)
-    res.status(500).json({ success: false, message: 'Erreur serveur.' })
+    res.status(500).json({ success:false, message:'Erreur serveur.' })
   }
 })
 
-module.exports = router
-
 // ══════════════════════════════════════════════
-//  OAUTH — Google
+//  OAUTH — Google (mobile + web)
 // ══════════════════════════════════════════════
-const passport = require('passport')
-require('../config/passport') // charge les stratégies
+const passport   = require('passport')
+const jwtLib     = require('jsonwebtoken')
+require('../config/passport')
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
 
-// Formatte un user DB en objet session frontend
-const formatUser = (u) => ({
-  id:          u.id,
-  email:       u.email,
-  firstName:   u.first_name,
-  lastName:    u.last_name,
-  name:        `${u.first_name} ${u.last_name}`.trim(),
-  avatar:      u.first_name?.[0]?.toUpperCase() || 'U',
-  avatarColor: u.avatar_color,
-  avatarUrl:   u.avatar_url,
-  role:        u.role,
-  rating:      parseFloat(u.avg_rating) || 0,
-  reviewCount: u.review_count,
-})
-
 // Démarre le flow Google
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-)
+// ?mode=mobile → pose un cookie pour mémoriser l'origine
+router.get('/google', (req, res, next) => {
+  const isMobile = req.query.mode === 'mobile'
+
+  // Cookie temporaire 5 min qui survit à la redirection Google
+  res.cookie('oauth_origin', isMobile ? 'mobile' : 'web', {
+    maxAge:   5 * 60 * 1000,
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+  })
+
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next)
+})
 
 // Callback Google
 router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${CLIENT_URL}/login?error=google` }),
-  (req, res) => {
-    const user = req.user
-    req.session.regenerate((err) => {
-      if (err) return res.redirect(`${CLIENT_URL}/login?error=session`)
-      req.session.userId    = user.id
-      req.session.userEmail = user.email
-      req.session.userRole  = user.role
-      req.session.save((saveErr) => {
-        if (saveErr) return res.redirect(`${CLIENT_URL}/login?error=session`)
-        query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'google')`, [user.id]).catch(()=>{})
-        // Passer le sessionId dans l'URL pour que le frontend puisse s'authentifier cross-domain
-        const sid = req.session.id
-        res.redirect(`${CLIENT_URL}/?oauth=success&sid=${sid}`)
+  passport.authenticate('google', {
+    session: false,
+    failureRedirect: `${CLIENT_URL}/login?error=google`,
+  }),
+  async (req, res) => {
+    try {
+      const user     = req.user
+      const isMobile = req.cookies?.oauth_origin === 'mobile'
+
+      // Effacer le cookie temporaire
+      res.clearCookie('oauth_origin')
+
+      // Générer JWT Clando 30 jours
+      const token = jwtLib.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || 'dev_secret',
+        { expiresIn: '30d' }
+      )
+
+      query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'google')`, [user.id]).catch(() => {})
+
+      if (isMobile) {
+        // ✅ App Android intercepte clando://oauth?token=xxx via intent-filter
+        console.log(`Google OAuth mobile: ${user.email} → clando://oauth`)
+        return res.redirect(`clando://oauth?token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email || '')}`)
+      }
+
+      // ── Web : session + JWT dans l'URL ────────────────────
+      req.session.regenerate((err) => {
+        if (err) return res.redirect(`${CLIENT_URL}/login?error=session`)
+        req.session.userId    = user.id
+        req.session.userEmail = user.email
+        req.session.userRole  = user.role
+        req.session.save(() => {
+          res.redirect(`${CLIENT_URL}/login?oauth=success&token=${encodeURIComponent(token)}`)
+        })
       })
-    })
+    } catch (err) {
+      console.error('Google callback error:', err)
+      res.redirect(`${CLIENT_URL}/login?error=google`)
+    }
   }
 )
 
 // ══════════════════════════════════════════════
 //  OAUTH — Facebook
 // ══════════════════════════════════════════════
-
-// Démarre le flow Facebook
 router.get('/facebook',
   passport.authenticate('facebook', { scope: ['email'] })
 )
 
-// Callback Facebook
 router.get('/facebook/callback',
-  passport.authenticate('facebook', { session: false, failureRedirect: `${CLIENT_URL}/login?error=facebook` }),
+  passport.authenticate('facebook', {
+    session: false,
+    failureRedirect: `${CLIENT_URL}/login?error=facebook`,
+  }),
   (req, res) => {
     const user = req.user
     req.session.regenerate((err) => {
@@ -598,9 +620,8 @@ router.get('/facebook/callback',
       req.session.userId    = user.id
       req.session.userEmail = user.email
       req.session.userRole  = user.role
-      req.session.save((saveErr) => {
-        if (saveErr) return res.redirect(`${CLIENT_URL}/login?error=session`)
-        query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'facebook')`, [user.id]).catch(()=>{})
+      req.session.save(() => {
+        query(`INSERT INTO connection_logs (user_id, method) VALUES ($1, 'facebook')`, [user.id]).catch(() => {})
         const sid = req.session.id
         res.redirect(`${CLIENT_URL}/?oauth=success&sid=${sid}`)
       })
@@ -608,3 +629,4 @@ router.get('/facebook/callback',
   }
 )
 
+module.exports = router
