@@ -45,3 +45,7 @@ build
 
 # Ignore Kotlin plugin data
 .kotlin
+
+.env
+backend/.env
+*.env

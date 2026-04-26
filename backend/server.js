@@ -63,6 +63,7 @@ const freemiumRoutes      = require('./routes/freemium')
 const { router: alertsRoutes } = require('./routes/alerts')
 const callsRoutes             = require('./routes/calls')
 const { startScheduler }  = require('./scheduler')
+const googleTokenRoute = require('./routes/google-token')
 
 const app    = express()
 const server = http.createServer(app)
@@ -131,6 +132,7 @@ const sessionConfig = {
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 }
+app.use('/api/auth/google-token', googleTokenRoute)
 
 app.use(session(sessionConfig))
 
